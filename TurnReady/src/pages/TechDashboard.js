@@ -1,1 +1,0 @@
-export default function TechDashboard() { return <h1>Technician Dashboard</h1>; }

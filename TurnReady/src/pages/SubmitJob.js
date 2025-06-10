@@ -1,1 +1,0 @@
-export default function SubmitJob() { return <h1>Submit a Job</h1>; }
