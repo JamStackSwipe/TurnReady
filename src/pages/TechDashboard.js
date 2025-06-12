@@ -7,15 +7,15 @@ const TechDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchOpenJobs() {
+    async function fetchJobs() {
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('status', 'open')
+        .in('status', ['open', 'in progress']) // Filter by status
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching open jobs:', error.message);
+        console.error('Error loading tech jobs:', error.message);
       } else {
         setJobs(data);
       }
@@ -23,29 +23,35 @@ const TechDashboard = () => {
       setLoading(false);
     }
 
-    fetchOpenJobs();
+    fetchJobs();
   }, []);
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h1>🛠️ Technician Dashboard</h1>
-
+      <h1>🛠 Tech Dashboard</h1>
       {loading ? (
-        <p>Loading open jobs...</p>
-      ) : jobs.length > 0 ? (
+        <p>Loading jobs for techs...</p>
+      ) : jobs.length === 0 ? (
+        <p>No active jobs found.</p>
+      ) : (
         <ul>
           {jobs.map((job) => (
-            <li key={job.id} style={{ marginBottom: '1rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem' }}>
-              <strong>{job.title}</strong><br />
-              Client: {job.client_name || 'Anonymous'}<br />
-              Level: {job.level}<br />
-              Scheduled: {job.scheduled_date || 'TBD'}<br />
+            <li
+              key={job.id}
+              style={{
+                marginBottom: '1rem',
+                padding: '1rem',
+                border: '1px solid #aaa',
+                borderRadius: '8px',
+              }}
+            >
+              <strong>{job.title}</strong> — {job.status}<br />
+              🧰 Level: {job.level}<br />
+              📅 Scheduled: {job.scheduled_date || 'TBD'}<br />
               <p>{job.description}</p>
             </li>
           ))}
         </ul>
-      ) : (
-        <p>No open jobs at the moment.</p>
       )}
     </div>
   );
