@@ -17,6 +17,7 @@ export default function JobBoard() {
       } else {
         setJobs(data);
       }
+
       setLoading(false);
     }
 
@@ -26,3 +27,23 @@ export default function JobBoard() {
   return (
     <div style={{ padding: '2rem' }}>
       <h1>🧰 Job Board</h1>
+      {loading ? (
+        <p>Loading jobs...</p>
+      ) : jobs.length === 0 ? (
+        <p>No jobs found.</p>
+      ) : (
+        <ul>
+          {jobs.map((job) => (
+            <li key={job.id} style={{ marginBottom: '1rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem' }}>
+              <strong>{job.title}</strong><br />
+              Level: {job.level}<br />
+              Status: {job.status}<br />
+              Scheduled: {job.scheduled_date || 'TBD'}<br />
+              <p>{job.description}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
