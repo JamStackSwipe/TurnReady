@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import JobCard from '../components/JobCard';
 
 export default function JobBoard() {
   const [jobs, setJobs] = useState([]);
@@ -29,7 +30,8 @@ export default function JobBoard() {
       <h1>🧰 Job Board</h1>
       {loading ? (
         <p>Loading jobs...</p>
-      ) : jobs.length === 0 ? (
+        {jobs.map(job => <JobCard key={job.id} job={job} />)}
+     
         <p>No jobs found.</p>
       ) : (
         <ul>
