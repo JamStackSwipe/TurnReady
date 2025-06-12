@@ -9,8 +9,6 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 
 
-
-
 function App() {
   return (
     <Router>
