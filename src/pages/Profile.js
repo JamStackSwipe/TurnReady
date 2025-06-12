@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '../supabaseClient';
 
 const Profile = () => (
   <div style={{ padding: '2rem' }}>
