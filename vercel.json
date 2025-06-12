@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "env": {
+    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
+    "REACT_APP_SUPABASE_KEY": "@react_app_supabase_key"
+  },
   "builds": [
     { "src": "src/api/send-job.js", "use": "@vercel/node" },
     { "src": "package.json", "use": "@vercel/static-build" }
@@ -9,10 +13,3 @@
     { "src": "/(.*)", "dest": "/" }
   ]
 }
-{
-  "env": {
-    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
-    "REACT_APP_SUPABASE_KEY": "@react_app_supabase_key"
-  }
-}
-
