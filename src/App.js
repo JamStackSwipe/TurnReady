@@ -6,6 +6,7 @@ import TechDashboard from './pages/TechDashboard';
 import JobBoard from './pages/JobBoard';
 import SubmitJob from './pages/SubmitJob';
 import Profile from './pages/Profile';
+import Login from './pages/Login';
 
 
 
@@ -20,7 +21,7 @@ function App() {
         <Route path="/job-board" element={<JobBoard />} />
         <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/profile" element={<Profile />} />
-       
+       <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );
