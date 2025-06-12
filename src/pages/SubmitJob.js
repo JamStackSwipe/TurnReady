@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '../supabaseClient';
 
 const SubmitJob = () => (
   <div style={{ padding: '2rem' }}>
