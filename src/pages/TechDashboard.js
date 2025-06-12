@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '../supabaseClient';
 
 const TechDashboard = () => (
   <div style={{ padding: '2rem' }}>
