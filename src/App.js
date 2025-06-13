@@ -8,11 +8,12 @@ import SubmitJob from './pages/SubmitJob';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import TechProfileSetup from './pages/TechProfileSetup';
-
+import Navbar from './components/Navbar'; // ✅ import navbar
 
 function App() {
   return (
     <Router>
+      <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
@@ -20,9 +21,8 @@ function App() {
         <Route path="/job-board" element={<JobBoard />} />
         <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/profile" element={<Profile />} />
-       <Route path="/login" element={<Login />} />
-       <Route path="/tech-setup" element={<TechProfileSetup />} />
-
+        <Route path="/login" element={<Login />} />
+        <Route path="/tech-setup" element={<TechProfileSetup />} />
       </Routes>
     </Router>
   );
