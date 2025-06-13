@@ -1,5 +1,7 @@
+// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import ClientDashboard from './pages/ClientDashboard';
 import TechDashboard from './pages/TechDashboard';
@@ -9,12 +11,13 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import TechProfileSetup from './pages/TechProfileSetup';
 import MyProperties from './pages/MyProperties';
-import Navbar from './components/Navbar'; // ✅ import navbar
+import Navbar from './components/Navbar';
 
 function App() {
   return (
     <Router>
       <Navbar />
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
