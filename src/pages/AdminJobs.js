@@ -1,6 +1,6 @@
 // src/pages/AdminJobs.js
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { format } from 'date-fns';
 
 const AdminJobs = () => {
