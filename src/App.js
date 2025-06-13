@@ -7,6 +7,7 @@ import JobBoard from './pages/JobBoard';
 import SubmitJob from './pages/SubmitJob';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
+import TechProfileSetup from './pages/TechProfileSetup';
 
 
 function App() {
@@ -20,6 +21,8 @@ function App() {
         <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/profile" element={<Profile />} />
        <Route path="/login" element={<Login />} />
+       <Route path="/tech-setup" element={<TechProfileSetup />} />
+
       </Routes>
     </Router>
   );
