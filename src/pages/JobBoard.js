@@ -1,41 +1,79 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import JobCard from '../components/JobCard';
+import { useUser } from '../components/AuthProvider';
+import { supabase } from '../supabase';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
-export default function JobBoard() {
+const JobBoard = () => {
+  const { user } = useUser();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [region, setRegion] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchJobs() {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('id, title, description, status, level, scheduled_date')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching jobs:', error.message);
-      } else {
-        setJobs(data);
+    const fetchTechRegionAndJobs = async () => {
+      if (!user) {
+        toast.error('You must be logged in to access the Job Board.');
+        navigate('/login');
+        return;
       }
 
-      setLoading(false);
-    }
+      // Fetch tech profile to get region
+      const { data: techProfile, error: profileError } = await supabase
+        .from('tech_profiles')
+        .select('service_area')
+        .eq('user_id', user.id)
+        .single();
 
-    fetchJobs();
-  }, []);
+      if (profileError || !techProfile) {
+        toast.error('You are not authorized to view the Job Board.');
+        navigate('/');
+        return;
+      }
+
+      setRegion(techProfile.service_area);
+
+      // Fetch jobs in that region
+      const { data: regionJobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('*')
+        .ilike('property_name', `%${techProfile.service_area}%`) // or use a dedicated region field
+        .eq('status', 'open');
+
+      if (jobsError) {
+        toast.error('Failed to load jobs.');
+        return;
+      }
+
+      setJobs(regionJobs);
+      setLoading(false);
+    };
+
+    fetchTechRegionAndJobs();
+  }, [user, navigate]);
+
+  if (loading) return <div className="p-4">Loading available jobs...</div>;
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>🧰 Job Board</h1>
-
-      {loading ? (
-        <p>Loading jobs...</p>
-      ) : jobs.length === 0 ? (
-        <p>No jobs found.</p>
+    <div className="p-4 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">🛠️ Jobs in {region}</h2>
+      {jobs.length === 0 ? (
+        <p>No open jobs in your area yet.</p>
       ) : (
-        jobs.map((job) => <JobCard key={job.id} job={job} />)
+        <ul className="space-y-4">
+          {jobs.map((job) => (
+            <li key={job.id} className="bg-white p-4 rounded-xl shadow">
+              <h3 className="text-lg font-semibold">{job.title}</h3>
+              <p>{job.description}</p>
+              <p className="text-sm text-gray-500">Property: {job.property_name}</p>
+              <p className="text-sm text-gray-500">Scheduled: {job.scheduled_date}</p>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
-}
+};
+
+export default JobBoard;
