@@ -23,6 +23,15 @@ const TechProfileSetup = () => {
     }));
   };
 
+  const [form, setForm] = useState({
+  full_name: '',
+  phone: '',
+  email: '',
+  shirt_size: '',
+  region: '', // ✅ add this
+  // ... rest
+});
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -72,6 +81,23 @@ const TechProfileSetup = () => {
   return (
     <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
       <h1 className="text-xl font-bold">👷 Tech Profile Setup</h1>
+
+    <label className="block mb-2 text-sm font-medium text-gray-700">Service Region</label>
+<select
+  name="region"
+  value={form.region}
+  onChange={handleChange}
+  required
+  className="w-full border p-2 rounded mb-4"
+>
+  <option value="">Select Region</option>
+  <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
+  <option value="Hot Springs AR">Hot Springs, AR</option>
+  <option value="Ozark Mtns / Branson MO">Ozark Mountains / Branson, MO</option>
+  <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
+  <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
+</select>
+
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
