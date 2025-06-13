@@ -6,6 +6,11 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center px-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-xl text-center">
+        <img
+          src="/logo.png"
+          alt="TurnReady Logo"
+          className="w-28 h-28 mx-auto mb-4 rounded-full border-2 border-gray-300"
+        />
         <h1 className="text-3xl font-bold mb-4 text-blue-700">🔧 Welcome to TurnReady</h1>
         <p className="text-gray-700 mb-6">
           The fastest way to get your short-term rentals back online. Book a technician, get verified service, and track progress — all in one place.
