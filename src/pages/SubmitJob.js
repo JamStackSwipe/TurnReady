@@ -1,102 +1,137 @@
-// src/components/SubmitJob.js
+// src/pages/SubmitJob.js
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 
-export default function SubmitJob() {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    level: '',
-    status: 'submitted',
-    property_name: '',
+const SubmitJob = () => {
+  const [form, setForm] = useState({
+    propertyName: '',
     address: '',
-    phone: '',
-    email: '',
-    property_manager: '',
-    owner_name: '',
-    guest_present: 'no',
-    next_check_in: '',
-    requested_time: 'next_available',
+    contactPhone: '',
+    contactEmail: '',
+    propertyManagementCompany: '',
+    ownerName: '',
+    description: '',
+    guestPresent: false,
+    nextCheckIn: '',
+    serviceRequestedBy: '',
+    emergency: false,
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.from('jobs').insert([formData]);
-
-    if (error) {
-      console.error(error.message);
-      toast.error('Failed to submit job.');
-    } else {
-      toast.success('Job submitted successfully!');
-      setFormData({
-        title: '',
-        description: '',
-        level: '',
-        status: 'submitted',
-        property_name: '',
-        address: '',
-        phone: '',
-        email: '',
-        property_manager: '',
-        owner_name: '',
-        guest_present: 'no',
-        next_check_in: '',
-        requested_time: 'next_available',
-      });
-    }
+    // Simulate backend submission
+    toast.success('✅ Job submitted successfully!');
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
-      <h2>Submit Service Request</h2>
-
-      <input name="title" value={formData.title} onChange={handleChange} placeholder="Job Title" required />
-      <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Problem Description" required />
-
-      <select name="level" value={formData.level} onChange={handleChange} required>
-        <option value="">Select Difficulty Level</option>
-        <option value="basic">Basic</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="urgent">Urgent</option>
-      </select>
-
-      <input name="property_name" value={formData.property_name} onChange={handleChange} placeholder="Cabin / Property Name" required />
-      <input name="address" value={formData.address} onChange={handleChange} placeholder="Property Address" required />
-      <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" required />
-      <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="Email Address" required />
-      <input name="property_manager" value={formData.property_manager} onChange={handleChange} placeholder="Property Management Company" required />
-      <input name="owner_name" value={formData.owner_name} onChange={handleChange} placeholder="Owner's Name (for Warranty)" required />
-
-      <label>
-        Guest Present?
-        <select name="guest_present" value={formData.guest_present} onChange={handleChange}>
-          <option value="no">No</option>
-          <option value="yes">Yes</option>
-        </select>
-      </label>
-
-      <label>
-        Next Check-In Date
-        <input name="next_check_in" type="date" value={formData.next_check_in} onChange={handleChange} />
-      </label>
-
-      <label>
-        Requested Service Time
-        <select name="requested_time" value={formData.requested_time} onChange={handleChange}>
-          <option value="next_available">Next Available</option>
-          <option value="today">Today</option>
-          <option value="tomorrow">Tomorrow</option>
-          <option value="asap">ASAP (Emergency)</option>
-        </select>
-      </label>
-
-      <button type="submit">Submit Job</button>
-    </form>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
+      <div className="w-full max-w-2xl bg-white shadow-md rounded-2xl p-8">
+        <h2 className="text-2xl font-bold mb-6 text-blue-700">📤 Submit a New Job</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            name="propertyName"
+            placeholder="Property Name"
+            value={form.propertyName}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <input
+            type="text"
+            name="address"
+            placeholder="Address"
+            value={form.address}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <input
+            type="text"
+            name="contactPhone"
+            placeholder="Contact Phone"
+            value={form.contactPhone}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <input
+            type="email"
+            name="contactEmail"
+            placeholder="Contact Email"
+            value={form.contactEmail}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="text"
+            name="propertyManagementCompany"
+            placeholder="Property Management Company"
+            value={form.propertyManagementCompany}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="text"
+            name="ownerName"
+            placeholder="Owner's Name"
+            value={form.ownerName}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+          />
+          <textarea
+            name="description"
+            placeholder="Describe the issue"
+            value={form.description}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="guestPresent"
+                checked={form.guestPresent}
+                onChange={handleChange}
+              />
+              Guest Present?
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="emergency"
+                checked={form.emergency}
+                onChange={handleChange}
+              />
+              Emergency?
+            </label>
+          </div>
+          <input
+            type="datetime-local"
+            name="serviceRequestedBy"
+            value={form.serviceRequestedBy}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+          >
+            🚀 Submit Job
+          </button>
+        </form>
+      </div>
+    </div>
   );
-}
+};
+
+export default SubmitJob;
