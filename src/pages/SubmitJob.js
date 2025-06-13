@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient';
 
 const SubmitJob = () => {
   const [form, setForm] = useState({
+    region: '', 
     propertyName: '',
     address: '',
     contactPhone: '',
