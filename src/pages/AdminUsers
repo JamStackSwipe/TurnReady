@@ -1,0 +1,45 @@
+// src/pages/AdminUsers.js
+
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../supabaseClient';
+
+const AdminUsers = () => {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const { data, error } = await supabase.from('profiles').select('*');
+
+      if (error) {
+        console.error('Error loading users:', error.message);
+      } else {
+        setUsers(data);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">👥 Admin: Users</h1>
+
+      {users.length === 0 ? (
+        <p>No users found.</p>
+      ) : (
+        <ul className="grid gap-4">
+          {users.map((u) => (
+            <li key={u.id} className="p-4 bg-white shadow border rounded">
+              <p><strong>ID:</strong> {u.id}</p>
+              <p><strong>Name:</strong> {u.full_name || 'N/A'}</p>
+              <p><strong>Email:</strong> {u.email}</p>
+              <p><strong>Role:</strong> {u.role || 'user'}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+export default AdminUsers;
