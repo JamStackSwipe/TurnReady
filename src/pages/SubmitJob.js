@@ -15,7 +15,6 @@ const SubmitJob = () => {
     ownerName: '',
     description: '',
     guestPresent: false,
-    nextCheckIn: '',
     serviceRequestedBy: '',
     emergency: false,
   });
@@ -46,7 +45,6 @@ const SubmitJob = () => {
         ownerName: '',
         description: '',
         guestPresent: false,
-        nextCheckIn: '',
         serviceRequestedBy: '',
         emergency: false,
       });
@@ -151,13 +149,7 @@ const SubmitJob = () => {
           <label className="block text-sm font-medium text-gray-700 mt-2">
             Next Check-In
           </label>
-          <input
-            type="date"
-            name="nextCheckIn"
-            value={form.nextCheckIn}
-            onChange={handleChange}
-            className="w-full border rounded-lg p-3"
-          />
+      
           <input
             type="text"
             name="serviceRequestedBy"
