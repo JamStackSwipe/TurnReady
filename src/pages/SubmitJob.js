@@ -145,8 +145,8 @@ const SubmitJob = () => {
               className="h-4 w-4"
             />
             <span>Guest Present</span>
- 
-      
+          </label>
+
           <input
             type="text"
             name="serviceRequestedBy"
