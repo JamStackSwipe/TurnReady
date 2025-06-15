@@ -145,10 +145,7 @@ const SubmitJob = () => {
               className="h-4 w-4"
             />
             <span>Guest Present</span>
-          </label>
-          <label className="block text-sm font-medium text-gray-700 mt-2">
-            Next Check-In
-          </label>
+ 
       
           <input
             type="text"
