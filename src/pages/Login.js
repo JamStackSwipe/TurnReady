@@ -1,6 +1,7 @@
 // src/pages/Login.js
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { signIn } from '../utils/auth';
 
 export default function Login() {
@@ -21,32 +22,49 @@ export default function Login() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h2>Login to TurnReady</h2>
-      <form onSubmit={handleLogin}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Email</label><br />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '0.5rem' }}
-          />
-        </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Password</label><br />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '0.5rem' }}
-          />
-        </div>
-        {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
-        <button type="submit" style={{ padding: '0.5rem 1rem' }}>Login</button>
-      </form>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="w-full max-w-md p-8 bg-white shadow-md rounded-lg">
+        <h2 className="text-2xl font-bold text-center mb-6 text-indigo-700">Login to TurnReady</h2>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full p-2 border rounded bg-gray-50"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full p-2 border rounded bg-gray-50"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
+
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
+          >
+            Login
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-gray-600 mt-4">
+          Don’t have an account?{' '}
+          <Link to="/register" className="text-indigo-600 hover:underline">
+            Register here
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
