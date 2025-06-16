@@ -49,6 +49,7 @@ import AdminPartsRequests from './pages/AdminPartsRequests';
 import AdminPartsApproval from './pages/AdminPartsApproval';
 import AdminPartInventory from './pages/AdminPartInventory';
 import AdminPartsOrders from './pages/AdminPartsOrders';
+import AdminRegionRequests from './pages/AdminRegionRequests';
 
 // System Utility Pages
 import PaymentHistory from './pages/PaymentHistory';
@@ -178,7 +179,11 @@ function App() {
             <AdminPartsOrders />
           </RequireRole>
         } />
-
+        <Route path="/admin/region-requests" element={
+          <RequireRole allowedRoles={['admin']}>
+            <AdminRegionRequests />
+  </RequireRole>
+} />
         {/* Catch All */}
         <Route path="*" element={<PageNotFound />} />
 
