@@ -1,23 +1,22 @@
-// ClientSignup.js
-// Allows property owners or managers to sign up as clients. They provide basic info,
-// agree to the platform terms, and their profile is saved to Supabase with role='client'.
+// src/pages/ClientSignup.js
 
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const ClientSignup = () => {
   const [form, setForm] = useState({
     full_name: '',
     email: '',
+    password: '',
     phone: '',
-    company: '',
     region: '',
+    custom_region: '',
     agree_terms: false,
   });
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -36,36 +35,48 @@ const ClientSignup = () => {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
     try {
-      const { error } = await supabase.from('profiles').insert([
+      // Step 1: Create Supabase Auth user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (signUpError) throw signUpError;
+
+      const user = authData.user;
+      if (!user) throw new Error('Signup succeeded, but no user returned.');
+
+      // Step 2: Insert client profile
+      const { error: profileError } = await supabase.from('profiles').insert([
         {
+          id: user.id,
           full_name: form.full_name,
           email: form.email,
           phone: form.phone,
-          region: form.region,
-          company: form.company,
+          region: form.region === 'Other' ? form.custom_region : form.region,
           role: 'client',
         },
       ]);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      toast.success('✅ Signup successful! You may now log in.');
+      toast.success('✅ Signup complete! Please check your email to confirm.');
       navigate('/login');
     } catch (err) {
       console.error(err);
-      toast.error('Signup failed. Please try again.');
+      toast.error(`Signup failed: ${err.message}`);
     }
 
-    setLoading(false);
+    setSubmitting(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6 text-green-700">🏡 Client Signup</h1>
+    <div className="min-h-screen bg-gray-50 flex justify-center items-center px-4">
+      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-lg">
+        <h1 className="text-2xl font-bold mb-6 text-blue-700">🏠 Client Signup</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <input
@@ -77,7 +88,6 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <input
             type="email"
             name="email"
@@ -87,7 +97,15 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
+          <input
+            type="password"
+            name="password"
+            placeholder="Create a Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
           <input
             type="tel"
             name="phone"
@@ -95,15 +113,6 @@ const ClientSignup = () => {
             value={form.phone}
             onChange={handleChange}
             required
-            className="w-full border rounded-lg p-3"
-          />
-
-          <input
-            type="text"
-            name="company"
-            placeholder="Property Management Company (Optional)"
-            value={form.company}
-            onChange={handleChange}
             className="w-full border rounded-lg p-3"
           />
 
@@ -119,7 +128,19 @@ const ClientSignup = () => {
             <option value="Hot Springs AR">Hot Springs, AR</option>
             <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
             <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
+            <option value="Other">Other (Request a Region)</option>
           </select>
+
+          {form.region === 'Other' && (
+            <input
+              type="text"
+              name="custom_region"
+              placeholder="Enter your city or region"
+              value={form.custom_region}
+              onChange={handleChange}
+              className="w-full border rounded-lg p-3"
+            />
+          )}
 
           <label className="flex items-center space-x-2">
             <input
@@ -130,15 +151,15 @@ const ClientSignup = () => {
               className="h-4 w-4"
               required
             />
-            <span className="text-sm">I agree to the TurnReady service terms and policies.</span>
+            <span className="text-sm">I agree to the TurnReady terms and policies.</span>
           </label>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+            disabled={submitting}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            {loading ? 'Submitting...' : '🎉 Create Client Account'}
+            {submitting ? 'Submitting...' : '📝 Sign Up as Client'}
           </button>
         </form>
       </div>
