@@ -24,8 +24,8 @@ const ReferralSystem = () => {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Error fetching referrals:', error);
       toast.error('Failed to load referrals');
-      console.error(error);
     } else {
       setReferrals(data);
     }
