@@ -68,6 +68,7 @@ function App() {
           </RequireRole>
         } />
         <Route path="/job/:id" element={<JobDetails />} />
+        <Route path="/job-update/:jobId" element={<JobUpdate />} />
 
 
         {/* Admin Views (admin only) */}
