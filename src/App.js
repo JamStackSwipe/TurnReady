@@ -67,6 +67,8 @@ function App() {
             <TechProfileSetup />
           </RequireRole>
         } />
+        <Route path="/job/:id" element={<JobDetails />} />
+
 
         {/* Admin Views (admin only) */}
         <Route path="/admin" element={
