@@ -8,6 +8,9 @@ const Footer = () => (
     <p>
       <Link to="/terms" className="hover:underline text-blue-500">Terms of Service</Link> &nbsp;|&nbsp;
       <Link to="/privacy" className="hover:underline text-blue-500">Privacy Policy</Link>
+      <a href="/request-region" className="text-blue-500 hover:underline">
+  🌍 Request a Region
+</a>
     </p>
   </footer>
 );
