@@ -1,5 +1,4 @@
 // src/App.js
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -14,6 +13,10 @@ import Login from './pages/Login';
 import Profile from './pages/Profile';
 import TechSignup from './pages/TechSignup';
 import ClientSignup from './pages/ClientSignup';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Settings from './pages/Settings';
+import PageNotFound from './pages/PageNotFound';
 
 // Job Pages
 import SubmitJob from './pages/SubmitJob';
@@ -77,6 +80,9 @@ function App() {
         <Route path="/maintenance-tips" element={<MaintenanceTips />} />
         <Route path="/system-logs" element={<SystemLogViewer />} />
         <Route path="/referrals" element={<ReferralSystem />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/settings" element={<Settings />} />
 
         {/* Client Views */}
         <Route path="/client-dashboard" element={
@@ -163,6 +169,9 @@ function App() {
             <AdminPartsOrders />
           </RequireRole>
         } />
+
+        {/* Catch All */}
+        <Route path="*" element={<PageNotFound />} />
 
       </Routes>
     </Router>
