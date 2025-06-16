@@ -6,6 +6,10 @@ import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
 
+// ✅ Extra Components
+import ClientReviewForm from '../components/ClientReviewForm';
+import TechReviewForm from '../components/TechReviewForm';
+
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -61,23 +65,37 @@ const JobDetails = () => {
           <p className="text-sm text-gray-500">Submitted: {new Date(job.created_at).toLocaleString()}</p>
         </div>
 
-        {/* Tech view buttons */}
+        {/* 🧰 Tech-only buttons */}
         {(role === 'tech' || role === 'admin') && (
           <div className="mt-6 space-x-3">
             <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
               ✅ Accept Job
             </button>
-
             <button
               className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
               onClick={handleRequestPart}
             >
               🛠️ Request Part
             </button>
-
             <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
               📸 Mark Completed
             </button>
+          </div>
+        )}
+
+        {/* 📝 Tech Review Form */}
+        {(role === 'tech' || role === 'admin') && (
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">Tech Notes & Completion</h2>
+            <TechReviewForm jobId={id} />
+          </div>
+        )}
+
+        {/* 🧑‍💼 Client Review Form */}
+        {(role === 'client' || role === 'admin') && (
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">Client Feedback</h2>
+            <ClientReviewForm jobId={id} />
           </div>
         )}
       </div>
