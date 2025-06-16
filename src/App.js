@@ -1,25 +1,34 @@
 // src/App.js
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Home from './pages/Home';
-import ClientDashboard from './pages/ClientDashboard';
-import TechDashboard from './pages/TechDashboard';
-import JobBoard from './pages/JobBoard';
-import SubmitJob from './pages/SubmitJob';
-import Profile from './pages/Profile';
-import Login from './pages/Login';
-import TechProfileSetup from './pages/TechProfileSetup';
-import MyProperties from './pages/MyProperties';
 import Navbar from './components/Navbar';
+import RequireRole from './components/RequireRole';
+
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Profile from './pages/Profile';
+
+import ClientDashboard from './pages/ClientDashboard';
+import MyProperties from './pages/MyProperties';
+import MyRequests from './pages/MyRequests';
+
+import TechDashboard from './pages/TechDashboard';
+import MyJobs from './pages/MyJobs';
+import TechProfileSetup from './pages/TechProfileSetup';
+
+import SubmitJob from './pages/SubmitJob';
+import JobBoard from './pages/JobBoard';
+import JobDetails from './pages/JobDetails';
+import JobUpdate from './pages/JobUpdate';
+import PartsRequest from './pages/PartsRequest';
+
 import AdminDashboard from './pages/AdminDashboard';
 import AdminJobs from './pages/AdminJobs';
 import AdminReviews from './pages/AdminReviews';
 import AdminUsers from './pages/AdminUsers';
-import MyJobs from './pages/MyJobs';
-import MyRequests from './pages/MyRequests';
-import PartsRequest from './pages/PartsRequest';
-import RequireRole from './components/RequireRole'; // ✅ add this line
+import AdminPartsRequests from './pages/AdminPartsRequests'; // ✅ New
 
 function App() {
   return (
@@ -35,7 +44,7 @@ function App() {
         <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/job-board" element={<JobBoard />} />
 
-        {/* Client Views (client + admin) */}
+        {/* Client Views */}
         <Route path="/client-dashboard" element={
           <RequireRole allowedRoles={['client', 'admin']}>
             <ClientDashboard />
@@ -52,7 +61,7 @@ function App() {
           </RequireRole>
         } />
 
-        {/* Tech Views (tech + admin) */}
+        {/* Tech Views */}
         <Route path="/tech-dashboard" element={
           <RequireRole allowedRoles={['tech', 'admin']}>
             <TechDashboard />
@@ -73,8 +82,7 @@ function App() {
         <Route path="/parts-request/:jobId" element={<PartsRequest />} />
         <Route path="/parts-request" element={<PartsRequest />} />
 
-
-        {/* Admin Views (admin only) */}
+        {/* Admin Views */}
         <Route path="/admin" element={
           <RequireRole allowedRoles={['admin']}>
             <AdminDashboard />
@@ -93,6 +101,11 @@ function App() {
         <Route path="/admin/users" element={
           <RequireRole allowedRoles={['admin']}>
             <AdminUsers />
+          </RequireRole>
+        } />
+        <Route path="/admin/parts" element={
+          <RequireRole allowedRoles={['admin']}>
+            <AdminPartsRequests />
           </RequireRole>
         } />
 
