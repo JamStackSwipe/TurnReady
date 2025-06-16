@@ -1,15 +1,17 @@
+// src/App.js
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Shared Components
 import Navbar from './components/Navbar';
-import RequireRole from './components/RequireRole';
 import Footer from './components/Footer';
+import RequireRole from './components/RequireRole';
 
 // Public Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Register from './pages/ClientSignup'; // Temporary alias for now
 import Profile from './pages/Profile';
 import TechSignup from './pages/TechSignup';
 import ClientSignup from './pages/ClientSignup';
@@ -47,7 +49,7 @@ import AdminPartsApproval from './pages/AdminPartsApproval';
 import AdminPartInventory from './pages/AdminPartInventory';
 import AdminPartsOrders from './pages/AdminPartsOrders';
 
-// System Pages
+// System Utility Pages
 import PaymentHistory from './pages/PaymentHistory';
 import DisputeCenter from './pages/DisputeCenter';
 import MaintenanceTips from './pages/MaintenanceTips';
@@ -65,24 +67,29 @@ function App() {
         {/* Public + Core */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/register" element={<Register />} /> {/* Temp: redirect to client signup */}
         <Route path="/signup/tech" element={<TechSignup />} />
         <Route path="/signup/client" element={<ClientSignup />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+
+        {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/job-board" element={<JobBoard />} />
         <Route path="/job/:id" element={<JobDetails />} />
         <Route path="/job-update/:jobId" element={<JobUpdate />} />
         <Route path="/parts-request/:jobId" element={<PartsRequest />} />
         <Route path="/parts-request" element={<PartsRequest />} />
+
+        {/* System Utilities */}
         <Route path="/notifications" element={<NotificationsInbox />} />
         <Route path="/payment-history" element={<PaymentHistory />} />
         <Route path="/disputes" element={<DisputeCenter />} />
         <Route path="/maintenance-tips" element={<MaintenanceTips />} />
         <Route path="/system-logs" element={<SystemLogViewer />} />
         <Route path="/referrals" element={<ReferralSystem />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/settings" element={<Settings />} />
 
         {/* Client Views */}
         <Route path="/client-dashboard" element={
@@ -90,14 +97,14 @@ function App() {
             <ClientDashboard />
           </RequireRole>
         } />
-        <Route path="/my-requests" element={
-          <RequireRole allowedRoles={['client', 'admin']}>
-            <MyRequests />
-          </RequireRole>
-        } />
         <Route path="/my-properties" element={
           <RequireRole allowedRoles={['client', 'admin']}>
             <MyProperties />
+          </RequireRole>
+        } />
+        <Route path="/my-requests" element={
+          <RequireRole allowedRoles={['client', 'admin']}>
+            <MyRequests />
           </RequireRole>
         } />
 
