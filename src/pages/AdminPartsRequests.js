@@ -38,11 +38,12 @@ const AdminPartsRequests = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Error loading part requests:', error);
         toast.error('Failed to load part requests');
-        console.error(error);
       } else {
         setRequests(data || []);
       }
+
       setLoading(false);
     };
 
