@@ -22,7 +22,7 @@ const PaymentHistory = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(error);
+        console.error('Error loading payments:', error);
         toast.error('Failed to load payment history');
       } else {
         setPayments(data);
@@ -57,8 +57,10 @@ const PaymentHistory = () => {
               <tbody>
                 {payments.map((payment) => (
                   <tr key={payment.id} className="border-t">
-                    <td className="p-3">{new Date(payment.created_at).toLocaleString()}</td>
-                    <td className="p-3">${payment.amount.toFixed(2)}</td>
+                    <td className="p-3">
+                      {new Date(payment.created_at).toLocaleString()}
+                    </td>
+                    <td className="p-3">${payment.amount?.toFixed(2)}</td>
                     <td className="p-3">{payment.type}</td>
                     <td className="p-3">{payment.status}</td>
                   </tr>
