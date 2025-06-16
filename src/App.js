@@ -11,7 +11,7 @@ import RequireRole from './components/RequireRole';
 // Public Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/ClientSignup'; // Temporary alias for now
+import Register from './pages/Register';
 import Profile from './pages/Profile';
 import TechSignup from './pages/TechSignup';
 import ClientSignup from './pages/ClientSignup';
