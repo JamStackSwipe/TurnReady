@@ -22,22 +22,35 @@ import JobDetails from './pages/JobDetails';
 import JobUpdate from './pages/JobUpdate';
 import PartsRequest from './pages/PartsRequest';
 
-// Client Pages (role: client + admin)
+// Client Pages
 import ClientDashboard from './pages/ClientDashboard';
 import MyProperties from './pages/MyProperties';
 import MyRequests from './pages/MyRequests';
 
-// Tech Pages (role: tech + admin)
+// Tech Pages
 import TechDashboard from './pages/TechDashboard';
 import MyJobs from './pages/MyJobs';
 import TechProfileSetup from './pages/TechProfileSetup';
+import CompleteJob from './pages/CompleteJob';
+import TechNotes from './pages/TechNotes';
 
-// Admin Pages (role: admin)
+// Admin Pages
 import AdminDashboard from './pages/AdminDashboard';
 import AdminJobs from './pages/AdminJobs';
 import AdminReviews from './pages/AdminReviews';
 import AdminUsers from './pages/AdminUsers';
 import AdminPartsRequests from './pages/AdminPartsRequests';
+import AdminPartsApproval from './pages/AdminPartsApproval';
+import AdminPartInventory from './pages/AdminPartInventory';
+import AdminPartsOrders from './pages/AdminPartsOrders';
+
+// System Pages
+import PaymentHistory from './pages/PaymentHistory';
+import DisputeCenter from './pages/DisputeCenter';
+import MaintenanceTips from './pages/MaintenanceTips';
+import SystemLogViewer from './pages/SystemLogViewer';
+import NotificationsInbox from './pages/NotificationsInbox';
+import ReferralSystem from './pages/ReferralSystem';
 
 function App() {
   return (
@@ -58,6 +71,12 @@ function App() {
         <Route path="/job-update/:jobId" element={<JobUpdate />} />
         <Route path="/parts-request/:jobId" element={<PartsRequest />} />
         <Route path="/parts-request" element={<PartsRequest />} />
+        <Route path="/notifications" element={<NotificationsInbox />} />
+        <Route path="/payment-history" element={<PaymentHistory />} />
+        <Route path="/disputes" element={<DisputeCenter />} />
+        <Route path="/maintenance-tips" element={<MaintenanceTips />} />
+        <Route path="/system-logs" element={<SystemLogViewer />} />
+        <Route path="/referrals" element={<ReferralSystem />} />
 
         {/* Client Views */}
         <Route path="/client-dashboard" element={
@@ -92,6 +111,16 @@ function App() {
             <TechProfileSetup />
           </RequireRole>
         } />
+        <Route path="/complete-job/:jobId" element={
+          <RequireRole allowedRoles={['tech', 'admin']}>
+            <CompleteJob />
+          </RequireRole>
+        } />
+        <Route path="/tech-notes/:jobId" element={
+          <RequireRole allowedRoles={['tech', 'admin']}>
+            <TechNotes />
+          </RequireRole>
+        } />
 
         {/* Admin Views */}
         <Route path="/admin" element={
@@ -117,6 +146,21 @@ function App() {
         <Route path="/admin/parts" element={
           <RequireRole allowedRoles={['admin']}>
             <AdminPartsRequests />
+          </RequireRole>
+        } />
+        <Route path="/admin/parts-approval" element={
+          <RequireRole allowedRoles={['admin']}>
+            <AdminPartsApproval />
+          </RequireRole>
+        } />
+        <Route path="/admin/inventory" element={
+          <RequireRole allowedRoles={['admin']}>
+            <AdminPartInventory />
+          </RequireRole>
+        } />
+        <Route path="/admin/part-orders" element={
+          <RequireRole allowedRoles={['admin']}>
+            <AdminPartsOrders />
           </RequireRole>
         } />
 
