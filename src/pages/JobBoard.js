@@ -3,6 +3,8 @@ import { useUser } from '../components/AuthProvider';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import JobList from '../components/JobList';
+import NotificationBanner from '../components/NotificationBanner';
 
 const JobBoard = () => {
   const { user } = useUser();
@@ -38,7 +40,7 @@ const JobBoard = () => {
       const { data: regionJobs, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
-        .ilike('property_name', `%${techProfile.service_area}%`) // or use a dedicated region field
+        .ilike('property_name', `%${techProfile.service_area}%`) // or use a real region field
         .eq('status', 'open');
 
       if (jobsError) {
@@ -56,21 +58,15 @@ const JobBoard = () => {
   if (loading) return <div className="p-4">Loading available jobs...</div>;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">🛠️ Jobs in {region}</h2>
+    <div className="p-4 max-w-5xl mx-auto">
+      <h2 className="text-3xl font-bold mb-4">🛠️ Jobs in {region}</h2>
+      
+      <NotificationBanner message="Jobs are updated in real time. Check back often for new opportunities!" />
+
       {jobs.length === 0 ? (
         <p>No open jobs in your area yet.</p>
       ) : (
-        <ul className="space-y-4">
-          {jobs.map((job) => (
-            <li key={job.id} className="bg-white p-4 rounded-xl shadow">
-              <h3 className="text-lg font-semibold">{job.title}</h3>
-              <p>{job.description}</p>
-              <p className="text-sm text-gray-500">Property: {job.property_name}</p>
-              <p className="text-sm text-gray-500">Scheduled: {job.scheduled_date}</p>
-            </li>
-          ))}
-        </ul>
+        <JobList jobs={jobs} />
       )}
     </div>
   );
