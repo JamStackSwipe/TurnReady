@@ -1,26 +1,5 @@
 // src/pages/CompleteJob.js
 
-/**
- * 📸 CompleteJob.js
- * -----------------------------------------------------
- * Used by technicians to finalize a job after service.
- * 
- * ✅ Features:
- * - Displays job summary details (read-only)
- * - Allows tech to upload one or more "after" photos
- * - Lets tech add completion notes or remarks
- * - Marks the job as completed in Supabase
- * - Updates job status to 'completed' or 'awaiting_approval'
- * - Can trigger notifications (manual or via future trigger)
- * 
- * 👷 Role: Accessible only to tech (or admin)
- * 🔧 Table: Updates 'job_submissions' with:
- *    - completed_notes
- *    - completed_photos
- *    - status = 'completed'
- *    - completed_at timestamp
- */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -64,10 +43,12 @@ const CompleteJob = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user || !jobId) return;
+
     setUploading(true);
 
     try {
-      let photoUrls = [];
+      const photoUrls = [];
 
       for (const file of photoFiles) {
         const filePath = `job-completions/${jobId}/${Date.now()}-${file.name}`;
@@ -77,8 +58,11 @@ const CompleteJob = () => {
 
         if (error) throw error;
 
-        const url = supabase.storage.from('job-photos').getPublicUrl(filePath).data.publicUrl;
-        photoUrls.push(url);
+        const { publicUrl } = supabase.storage
+          .from('job-photos')
+          .getPublicUrl(filePath).data;
+
+        photoUrls.push(publicUrl);
       }
 
       const { error: updateError } = await supabase
@@ -87,7 +71,7 @@ const CompleteJob = () => {
           completed_notes: notes,
           completed_photos: photoUrls,
           status: 'completed',
-          completed_at: new Date(),
+          completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
