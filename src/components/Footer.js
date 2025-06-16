@@ -7,7 +7,7 @@ const Footer = () => (
     <p>&copy; {new Date().getFullYear()} TurnReady. All rights reserved.</p>
     <p>
       <Link to="/terms" className="hover:underline text-blue-500">Terms of Service</Link> &nbsp;|&nbsp;
-      <Link to="/privacy" className="hover:underline text-blue-500">Privacy Policy</Link>
+      <Link to="/privacy" className="hover:underline text-blue-500">Privacy Policy</Link> &nbsp;|&nbsp;
       <a href="/request-region" className="text-blue-500 hover:underline">
   🌍 Request a Region
 </a>
