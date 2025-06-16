@@ -7,6 +7,7 @@ const TechSignup = () => {
   const [form, setForm] = useState({
     full_name: '',
     email: '',
+    password: '',
     phone: '',
     region: '',
     agree_terms: false,
@@ -31,7 +32,7 @@ const TechSignup = () => {
     e.preventDefault();
 
     if (!form.agree_terms) {
-      toast.error('❌ You must agree to the terms to continue.');
+      toast.error('❌ You must agree to the terms.');
       return;
     }
 
@@ -43,7 +44,25 @@ const TechSignup = () => {
     setUploading(true);
 
     try {
+      // Step 1: Create Supabase Auth User
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      const user = authData.user;
+
+      if (!user) {
+        throw new Error('User not returned after sign up.');
+      }
+
       const timestamp = Date.now();
+
+      // Step 2: Upload documents
       const uploads = [
         {
           file: vehicleInsuranceFile,
@@ -60,12 +79,16 @@ const TechSignup = () => {
       ];
 
       for (const { file, path } of uploads) {
-        const { error } = await supabase.storage.from('uploads').upload(path, file);
+        const { error } = await supabase.storage
+          .from('uploads')
+          .upload(path, file, { upsert: true });
         if (error) throw error;
       }
 
-      const { error } = await supabase.from('profiles').insert([
+      // Step 3: Save profile row
+      const { error: profileError } = await supabase.from('profiles').insert([
         {
+          id: user.id,
           full_name: form.full_name,
           email: form.email,
           phone: form.phone,
@@ -77,13 +100,13 @@ const TechSignup = () => {
         },
       ]);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      toast.success('✅ Signup complete! Await approval.');
+      toast.success('✅ Signup successful! Please check your email to confirm your account.');
       navigate('/login');
     } catch (err) {
       console.error(err);
-      toast.error('Signup failed. Please try again.');
+      toast.error(`Signup failed: ${err.message}`);
     }
 
     setUploading(false);
@@ -114,6 +137,15 @@ const TechSignup = () => {
             className="w-full border rounded-lg p-3"
           />
           <input
+            type="password"
+            name="password"
+            placeholder="Create a Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
             type="tel"
             name="phone"
             placeholder="Phone Number"
@@ -129,12 +161,26 @@ const TechSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           >
-            <option value="">Select Region</option>
-            <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
-            <option value="Hot Springs AR">Hot Springs, AR</option>
-            <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
-            <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
+             <option value="">Select Region</option>
+  <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
+  <option value="Hot Springs AR">Hot Springs, AR</option>
+  <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
+  <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
+  <option value="Other">Other (Request a Region)</option>
           </select>
+
+          {form.region === 'Other' && (
+            <input
+              type="text"
+              name="custom_region"
+              placeholder="Enter your city or region"
+              value={form.custom_region || ''}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, custom_region: e.target.value }))
+              }
+              className="w-full border rounded-lg p-3"
+            />
+          )}
 
           <div className="space-y-2">
             <label className="block text-sm font-medium">Upload Vehicle Insurance</label>
@@ -144,17 +190,6 @@ const TechSignup = () => {
               onChange={(e) => setVehicleInsuranceFile(e.target.files[0])}
               required
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Need insurance?{' '}
-              <a
-                href="https://www.nextinsurance.com/?ref=YOUR_AFFILIATE_ID"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline"
-              >
-                Get Auto Coverage →
-              </a>
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -165,17 +200,6 @@ const TechSignup = () => {
               onChange={(e) => setLiabilityInsuranceFile(e.target.files[0])}
               required
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Don’t have liability insurance?{' '}
-              <a
-                href="https://www.nextinsurance.com/?ref=YOUR_AFFILIATE_ID"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline"
-              >
-                Get Covered by Next →
-              </a>
-            </p>
           </div>
 
           <div className="space-y-2">
