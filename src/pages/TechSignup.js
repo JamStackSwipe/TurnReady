@@ -1,7 +1,3 @@
-// TechSignup.js
-// This page allows technicians to sign up by providing basic info, uploading insurance/license files,
-// and agreeing to the platform terms. Techs are saved to the 'profiles' table with role='tech'.
-
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
@@ -16,7 +12,8 @@ const TechSignup = () => {
     agree_terms: false,
   });
 
-  const [insuranceFile, setInsuranceFile] = useState(null);
+  const [vehicleInsuranceFile, setVehicleInsuranceFile] = useState(null);
+  const [liabilityInsuranceFile, setLiabilityInsuranceFile] = useState(null);
   const [licenseFile, setLicenseFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -38,30 +35,35 @@ const TechSignup = () => {
       return;
     }
 
-    if (!insuranceFile || !licenseFile) {
-      toast.error('❌ Please upload both insurance and license documents.');
+    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !licenseFile) {
+      toast.error('❌ Please upload all required documents.');
       return;
     }
 
     setUploading(true);
 
     try {
-      // Upload documents to Supabase storage
       const timestamp = Date.now();
-      const insurancePath = `tech_docs/${timestamp}_insurance_${insuranceFile.name}`;
-      const licensePath = `tech_docs/${timestamp}_license_${licenseFile.name}`;
+      const uploads = [
+        {
+          file: vehicleInsuranceFile,
+          path: `tech_docs/${timestamp}_vehicle_${vehicleInsuranceFile.name}`,
+        },
+        {
+          file: liabilityInsuranceFile,
+          path: `tech_docs/${timestamp}_liability_${liabilityInsuranceFile.name}`,
+        },
+        {
+          file: licenseFile,
+          path: `tech_docs/${timestamp}_license_${licenseFile.name}`,
+        },
+      ];
 
-      const { error: insuranceError } = await supabase.storage
-        .from('uploads')
-        .upload(insurancePath, insuranceFile);
+      for (const { file, path } of uploads) {
+        const { error } = await supabase.storage.from('uploads').upload(path, file);
+        if (error) throw error;
+      }
 
-      const { error: licenseError } = await supabase.storage
-        .from('uploads')
-        .upload(licensePath, licenseFile);
-
-      if (insuranceError || licenseError) throw new Error('Upload failed');
-
-      // Save tech profile
       const { error } = await supabase.from('profiles').insert([
         {
           full_name: form.full_name,
@@ -69,8 +71,9 @@ const TechSignup = () => {
           phone: form.phone,
           region: form.region,
           role: 'tech',
-          insurance_url: insurancePath,
-          license_url: licensePath,
+          vehicle_insurance_url: uploads[0].path,
+          liability_insurance_url: uploads[1].path,
+          license_url: uploads[2].path,
         },
       ]);
 
@@ -135,13 +138,45 @@ const TechSignup = () => {
           </select>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload Insurance Document</label>
+            <label className="block text-sm font-medium">Upload Vehicle Insurance</label>
             <input
               type="file"
               accept="image/*,application/pdf"
-              onChange={(e) => setInsuranceFile(e.target.files[0])}
+              onChange={(e) => setVehicleInsuranceFile(e.target.files[0])}
               required
             />
+            <p className="text-sm text-gray-500 mt-1">
+              Need insurance?{' '}
+              <a
+                href="https://www.nextinsurance.com/?ref=YOUR_AFFILIATE_ID"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
+                Get Auto Coverage →
+              </a>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Upload General Liability Insurance</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setLiabilityInsuranceFile(e.target.files[0])}
+              required
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Don’t have liability insurance?{' '}
+              <a
+                href="https://www.nextinsurance.com/?ref=YOUR_AFFILIATE_ID"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
+                Get Covered by Next →
+              </a>
+            </p>
           </div>
 
           <div className="space-y-2">
