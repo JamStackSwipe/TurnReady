@@ -46,9 +46,7 @@ const SystemLogViewer = () => {
                 <p className="text-sm text-gray-700">
                   <strong>{log.action_type}</strong> by <em>{log.performed_by || 'Unknown'}</em>
                 </p>
-                <p className="text-sm text-gray-500">
-                  {log.description}
-                </p>
+                <p className="text-sm text-gray-500">{log.description}</p>
                 <p className="text-xs text-gray-400">
                   {new Date(log.created_at).toLocaleString()}
                 </p>
