@@ -46,7 +46,7 @@ const NotificationsInbox = () => {
             {notifications.map((n) => (
               <li
                 key={n.id}
-                className="p-4 bg-gray-50 rounded-lg shadow border"
+                className="p-4 bg-gray-50 rounded-md border shadow-sm"
               >
                 <p className="text-gray-800">{n.message}</p>
                 <p className="text-xs text-gray-400 mt-1">
