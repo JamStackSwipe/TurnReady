@@ -19,6 +19,7 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
+import RequestRegion from './pages/RequestRegion';
 
 // Job Pages
 import SubmitJob from './pages/SubmitJob';
@@ -74,6 +75,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/request-region" element={<RequestRegion />} />
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
