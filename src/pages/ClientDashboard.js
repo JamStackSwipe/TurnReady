@@ -10,9 +10,9 @@ const ClientDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchJobs() {
+    const fetchJobs = async () => {
       const { data, error } = await supabase
-        .from('jobs')
+        .from('job_submissions')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -23,16 +23,15 @@ const ClientDashboard = () => {
       }
 
       setLoading(false);
-    }
+    };
 
     fetchJobs();
   }, []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">📋 Client Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-700">📋 Client Dashboard</h1>
 
-      {/* 🔗 Snapshot tile to full My Requests page */}
       <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div
           onClick={() => navigate('/my-requests')}
@@ -45,22 +44,28 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      {/* 🔄 Existing job snapshot list */}
       {loading ? (
         <p>Loading your jobs...</p>
       ) : jobs.length === 0 ? (
         <p>No jobs found.</p>
       ) : (
-        <ul>
+        <ul className="space-y-4">
           {jobs.map((job) => (
             <li
               key={job.id}
-              className="mb-4 p-4 border border-gray-200 rounded-lg bg-white shadow"
+              className="p-4 bg-white border border-gray-200 rounded-lg shadow"
             >
-              <strong>{job.title}</strong> — {job.status}<br />
-              📅 {job.scheduled_date || 'TBD'}<br />
-              🛠 Level: {job.level}<br />
-              <p>{job.description}</p>
+              <p className="font-bold">{job.propertyName || 'Untitled Job'}</p>
+              <p className="text-sm text-gray-600">{job.description}</p>
+              <p className="text-sm text-gray-500">
+                🛠 Level: {job.level || 'N/A'} | 📅 {new Date(job.created_at).toLocaleDateString()}
+              </p>
+              <button
+                onClick={() => navigate(`/job/${job.id}`)}
+                className="mt-2 inline-block text-blue-600 underline text-sm"
+              >
+                View Job →
+              </button>
             </li>
           ))}
         </ul>
