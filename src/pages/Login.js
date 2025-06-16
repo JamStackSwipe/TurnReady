@@ -1,7 +1,7 @@
 // src/pages/Login.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // ✅ Add Link from react-router-dom
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -43,10 +43,10 @@ const Login = () => {
         <div className="mt-6 text-center text-sm text-gray-600">
           <p className="mb-1">Don't have an account?</p>
           <p>
-            👉 <a href="/signup/tech" className="text-blue-600 hover:underline">Sign up as a Technician</a>
+            👉 <Link to="/signup/tech" className="text-blue-600 hover:underline">Sign up as a Technician</Link>
           </p>
           <p>
-            👉 <a href="/signup/client" className="text-blue-600 hover:underline">Sign up as a Client</a>
+            👉 <Link to="/signup/client" className="text-blue-600 hover:underline">Sign up as a Client</Link>
           </p>
         </div>
       </div>
