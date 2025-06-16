@@ -18,6 +18,7 @@ import AdminReviews from './pages/AdminReviews';
 import AdminUsers from './pages/AdminUsers';
 import MyJobs from './pages/MyJobs';
 import MyRequests from './pages/MyRequests';
+import PartsRequest from './pages/PartsRequest';
 import RequireRole from './components/RequireRole'; // ✅ add this line
 
 function App() {
@@ -69,6 +70,8 @@ function App() {
         } />
         <Route path="/job/:id" element={<JobDetails />} />
         <Route path="/job-update/:jobId" element={<JobUpdate />} />
+        <Route path="/parts-request/:jobId" element={<PartsRequest />} />
+        <Route path="/parts-request" element={<PartsRequest />} />
 
 
         {/* Admin Views (admin only) */}
