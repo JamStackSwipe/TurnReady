@@ -70,7 +70,7 @@ const SubmitJob = () => {
             <option value="">Select Region</option>
             <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
             <option value="Hot Springs AR">Hot Springs, AR</option>
-            <option value="Ozark Mtns / Branson MO">Ozark Mountains / Branson, MO</option>
+           
             <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
             <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
           </select>
