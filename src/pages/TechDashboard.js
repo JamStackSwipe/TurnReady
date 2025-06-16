@@ -10,11 +10,11 @@ const TechDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchJobs() {
+    const fetchJobs = async () => {
       const { data, error } = await supabase
-        .from('jobs')
+        .from('job_submissions')
         .select('*')
-        .in('status', ['open', 'in progress']) // Filter active jobs
+        .in('status', ['open', 'in progress']) // Only show active jobs
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -24,16 +24,15 @@ const TechDashboard = () => {
       }
 
       setLoading(false);
-    }
+    };
 
     fetchJobs();
   }, []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">🛠 Tech Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-700">🛠 Tech Dashboard</h1>
 
-      {/* Snapshot: My Jobs tile */}
       <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div
           onClick={() => navigate('/my-jobs')}
@@ -46,22 +45,28 @@ const TechDashboard = () => {
         </div>
       </div>
 
-      {/* Existing Active Jobs List */}
       {loading ? (
         <p>Loading jobs for techs...</p>
       ) : jobs.length === 0 ? (
         <p>No active jobs found.</p>
       ) : (
-        <ul>
+        <ul className="space-y-4">
           {jobs.map((job) => (
             <li
               key={job.id}
-              className="mb-4 p-4 border border-gray-300 rounded-lg bg-white shadow"
+              className="p-4 bg-white border border-gray-200 rounded-lg shadow"
             >
-              <strong>{job.title}</strong> — {job.status}<br />
-              🧰 Level: {job.level}<br />
-              📅 Scheduled: {job.scheduled_date || 'TBD'}<br />
-              <p>{job.description}</p>
+              <p className="font-bold">{job.propertyName}</p>
+              <p className="text-sm text-gray-600">{job.description}</p>
+              <p className="text-sm text-gray-500">
+                📍 {job.region} | 🗓 {new Date(job.created_at).toLocaleDateString()}
+              </p>
+              <button
+                onClick={() => navigate(`/job/${job.id}`)}
+                className="mt-2 inline-block text-blue-600 underline text-sm"
+              >
+                View Job →
+              </button>
             </li>
           ))}
         </ul>
