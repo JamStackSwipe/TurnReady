@@ -70,8 +70,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} /> {/* Temp: redirect to client signup */}
-        <Route path="/signup/tech" element={<TechSignup />} />
-        <Route path="/signup/client" element={<ClientSignup />} />
+        <Route path="/tech-signup" element={<TechSignup />} /> {/* 👈 Top-level route */}
+        <Route path="/client-signup" element={<ClientSignup />} /> {/* 👈 Top-level route */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/terms" element={<TermsOfService />} />
@@ -182,8 +182,9 @@ function App() {
         <Route path="/admin/region-requests" element={
           <RequireRole allowedRoles={['admin']}>
             <AdminRegionRequests />
-  </RequireRole>
-} />
+          </RequireRole>
+        } />
+
         {/* Catch All */}
         <Route path="*" element={<PageNotFound />} />
 
