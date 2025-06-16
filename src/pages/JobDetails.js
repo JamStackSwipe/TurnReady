@@ -1,14 +1,15 @@
 // src/pages/JobDetails.js
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
 
 const JobDetails = () => {
   const { id } = useParams();
-  const { user } = useUser();
+  const navigate = useNavigate();
+  const { user, role } = useUser();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +34,10 @@ const JobDetails = () => {
     if (id) fetchJob();
   }, [id]);
 
+  const handleRequestPart = () => {
+    navigate(`/parts-request/${id}`);
+  };
+
   if (loading) return <div className="p-6 text-center">Loading...</div>;
   if (!job) return <div className="p-6 text-center">Job not found.</div>;
 
@@ -56,19 +61,25 @@ const JobDetails = () => {
           <p className="text-sm text-gray-500">Submitted: {new Date(job.created_at).toLocaleString()}</p>
         </div>
 
-        {/* Placeholder for future buttons */}
-        <div className="mt-6 space-x-3">
-          {/* Tech view buttons */}
-          <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            ✅ Accept Job
-          </button>
-          <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-            ✍️ Add Note / Request Part
-          </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            📸 Mark Completed
-          </button>
-        </div>
+        {/* Tech view buttons */}
+        {(role === 'tech' || role === 'admin') && (
+          <div className="mt-6 space-x-3">
+            <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              ✅ Accept Job
+            </button>
+
+            <button
+              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+              onClick={handleRequestPart}
+            >
+              🛠️ Request Part
+            </button>
+
+            <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              📸 Mark Completed
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
