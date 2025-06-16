@@ -17,6 +17,8 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
+import Footer from './components/Footer';
+
 
 // Job Pages
 import SubmitJob from './pages/SubmitJob';
@@ -174,6 +176,8 @@ function App() {
         <Route path="*" element={<PageNotFound />} />
 
       </Routes>
+          <Footer />
+
     </Router>
   );
 }
