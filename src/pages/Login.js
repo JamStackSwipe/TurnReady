@@ -1,7 +1,6 @@
-// src/pages/Login.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate, Link } from 'react-router-dom'; // ✅ Add Link from react-router-dom
+import { useNavigate, Link } from 'react-router-dom'; // ✅ use Link here
 import toast from 'react-hot-toast';
 
 const Login = () => {
