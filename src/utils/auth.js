@@ -1,7 +1,18 @@
 // src/utils/auth.js
 import { supabase } from '../supabaseClient';
 
-// Sign in using email/password (expand later for magic link or OAuth)
+// Sign up a new user
+export async function signUp(email, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Sign in using email/password
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
