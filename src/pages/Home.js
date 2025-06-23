@@ -1,4 +1,3 @@
-// src/pages/Home.js
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -19,6 +18,12 @@ const Home = () => {
 
         <div className="space-y-4">
           <Link
+            to="/register"
+            className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-6 rounded-xl transition"
+          >
+            ✨ First Time? Create Account
+          </Link>
+          <Link
             to="/submit-job"
             className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition"
           >
@@ -38,7 +43,9 @@ const Home = () => {
           </Link>
         </div>
       </div>
-      <p className="text-xs text-gray-400 mt-6">© {new Date().getFullYear()} TurnReady.pro – All rights reserved.</p>
+      <p className="text-xs text-gray-400 mt-6">
+        © {new Date().getFullYear()} TurnReady.pro – All rights reserved.
+      </p>
     </div>
   );
 };
