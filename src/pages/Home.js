@@ -1,7 +1,27 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useUser } from '../components/AuthProvider';
 
 const Home = () => {
+  const { user } = useUser();
+  const navigate = useNavigate();
+
+  const handleTechClick = () => {
+    if (user) {
+      navigate('/tech-dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const handleClientClick = () => {
+    if (user) {
+      navigate('/client-dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-100 flex flex-col justify-center items-center px-4">
       <div className="bg-white p-10 rounded-3xl shadow-2xl max-w-xl text-center border border-blue-100">
@@ -18,31 +38,28 @@ const Home = () => {
 
         <div className="space-y-4">
           <Link
-            to="/register"
-            className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-6 rounded-xl transition"
-          >
-            ✨ First Time? Create Account
-          </Link>
-          <Link
             to="/submit-job"
             className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition"
           >
             📤 Submit a Job
           </Link>
-          <Link
-            to="/tech-setup"
+
+          <button
+            onClick={handleTechClick}
             className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition"
           >
-            🧰 Become a Tech
-          </Link>
-          <Link
-            to="/client-dashboard"
+            🛠 Tech Dashboard
+          </button>
+
+          <button
+            onClick={handleClientClick}
             className="block w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition"
           >
-            📋 Client Dashboard
-          </Link>
+            🧾 Client Dashboard
+          </button>
         </div>
       </div>
+
       <p className="text-xs text-gray-400 mt-6">
         © {new Date().getFullYear()} TurnReady.pro – All rights reserved.
       </p>
