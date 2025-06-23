@@ -17,9 +17,7 @@ const TechSignup = () => {
 
   const [vehicleInsuranceFile, setVehicleInsuranceFile] = useState(null);
   const [liabilityInsuranceFile, setLiabilityInsuranceFile] = useState(null);
-  const [driversLicenseFile, setDriversLicenseFile] = useState(null);
-  const [epaLicenseFile, setEpaLicenseFile] = useState(null);
-  const [otherCertsFile, setOtherCertsFile] = useState(null);
+  const [licenseFile, setLicenseFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   const navigate = useNavigate();
@@ -40,61 +38,52 @@ const TechSignup = () => {
       return;
     }
 
-    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !driversLicenseFile) {
-      toast.error('❌ Vehicle, liability, and driver’s license are required.');
+    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !licenseFile) {
+      toast.error('❌ Please upload all required documents.');
       return;
     }
 
     setUploading(true);
 
     try {
+      // Sign up user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
       });
 
       if (signUpError) throw signUpError;
-      const user = authData.user;
-      if (!user) throw new Error('User not returned after signup');
 
+      const user = authData.user;
+      if (!user) throw new Error('User not returned after signup.');
+
+      // Upload files (attached to auth.uid in filename for reference)
+      const uid = user.id;
       const timestamp = Date.now();
 
-      const uploadFile = async (file, label) => {
-        const path = `tech_docs/${timestamp}_${label}_${file.name}`;
-        const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
-        if (error) throw error;
-        return path;
-      };
-
-      const vehiclePath = await uploadFile(vehicleInsuranceFile, 'vehicle');
-      const liabilityPath = await uploadFile(liabilityInsuranceFile, 'liability');
-      const driversPath = await uploadFile(driversLicenseFile, 'dl');
-      const epaPath = epaLicenseFile ? await uploadFile(epaLicenseFile, 'epa') : null;
-      const otherPath = otherCertsFile ? await uploadFile(otherCertsFile, 'other') : null;
-
-      const { error: profileError } = await supabase.from('profiles').insert([
+      const uploads = [
         {
-          id: user.id,
-          full_name: form.full_name,
-          email: form.email,
-          phone: form.phone,
-          region: form.region,
-          role: 'tech',
-          vehicle_insurance_url: vehiclePath,
-          liability_insurance_url: liabilityPath,
-          drivers_license_url: driversPath,
-          epa_license_url: epaPath,
-          other_certs_url: otherPath,
+          file: vehicleInsuranceFile,
+          path: `tech_docs/${uid}_${timestamp}_vehicle_${vehicleInsuranceFile.name}`,
         },
-      ]);
+        {
+          file: liabilityInsuranceFile,
+          path: `tech_docs/${uid}_${timestamp}_liability_${liabilityInsuranceFile.name}`,
+        },
+        {
+          file: licenseFile,
+          path: `tech_docs/${uid}_${timestamp}_license_${licenseFile.name}`,
+        },
+      ];
 
-      if (profileError) {
-        console.error(profileError);
-        toast.error('Profile insert failed. It may require email verification first.');
-      } else {
-        toast.success('✅ Signup successful! Check your email to verify your account.');
+      for (const { file, path } of uploads) {
+        const { error } = await supabase.storage
+          .from('uploads')
+          .upload(path, file, { upsert: true });
+        if (error) throw error;
       }
 
+      toast.success('✅ Signup successful! Check your email to confirm your account.');
       navigate('/login');
     } catch (err) {
       console.error(err);
@@ -110,12 +99,50 @@ const TechSignup = () => {
         <h1 className="text-2xl font-bold mb-6 text-blue-700">🛠️ Technician Signup</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <input name="full_name" value={form.full_name} onChange={handleChange} required placeholder="Full Name" className="w-full border rounded-lg p-3" />
-          <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="Email" className="w-full border rounded-lg p-3" />
-          <input name="password" type="password" value={form.password} onChange={handleChange} required placeholder="Create a Password" className="w-full border rounded-lg p-3" />
-          <input name="phone" type="tel" value={form.phone} onChange={handleChange} required placeholder="Phone Number" className="w-full border rounded-lg p-3" />
+          <input
+            type="text"
+            name="full_name"
+            placeholder="Full Name"
+            value={form.full_name}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Create a Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={form.phone}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
 
-          <select name="region" value={form.region} onChange={handleChange} required className="w-full border rounded-lg p-3">
+          <select
+            name="region"
+            value={form.region}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          >
             <option value="">Select Region</option>
             <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
             <option value="Hot Springs AR">Hot Springs, AR</option>
@@ -125,40 +152,65 @@ const TechSignup = () => {
           </select>
 
           {form.region === 'Other' && (
-            <input name="custom_region" value={form.custom_region || ''} onChange={(e) => setForm(prev => ({ ...prev, custom_region: e.target.value }))} placeholder="Enter your region" className="w-full border rounded-lg p-3" />
+            <input
+              type="text"
+              name="custom_region"
+              placeholder="Enter your city or region"
+              value={form.custom_region || ''}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, custom_region: e.target.value }))
+              }
+              className="w-full border rounded-lg p-3"
+            />
           )}
 
-          <div>
+          <div className="space-y-2">
             <label className="block text-sm font-medium">Upload Vehicle Insurance</label>
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setVehicleInsuranceFile(e.target.files[0])} required />
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setVehicleInsuranceFile(e.target.files[0])}
+              required
+            />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <label className="block text-sm font-medium">Upload General Liability Insurance</label>
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setLiabilityInsuranceFile(e.target.files[0])} required />
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setLiabilityInsuranceFile(e.target.files[0])}
+              required
+            />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">Upload Driver's License</label>
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setDriversLicenseFile(e.target.files[0])} required />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Upload EPA License (if applicable)</label>
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setEpaLicenseFile(e.target.files[0])} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Other Certifications (optional)</label>
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setOtherCertsFile(e.target.files[0])} />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Upload License Document</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setLicenseFile(e.target.files[0])}
+              required
+            />
           </div>
 
           <label className="flex items-center space-x-2">
-            <input type="checkbox" name="agree_terms" checked={form.agree_terms} onChange={handleChange} className="h-4 w-4" required />
+            <input
+              type="checkbox"
+              name="agree_terms"
+              checked={form.agree_terms}
+              onChange={handleChange}
+              className="h-4 w-4"
+              required
+            />
             <span className="text-sm">I agree to the TurnReady terms and policies.</span>
           </label>
 
-          <button type="submit" disabled={uploading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+          <button
+            type="submit"
+            disabled={uploading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
             {uploading ? 'Submitting...' : '🚀 Sign Up as Tech'}
           </button>
         </form>
