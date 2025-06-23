@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -17,26 +17,39 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
 
-    if (error) {
-      toast.error('Login failed: ' + error.message);
-    } else {
-      toast.success('Logged in successfully!');
-      navigate('/'); // You can customize this redirect after login
+      if (error) throw error;
+
+      // Wait a moment for auth state to sync
+      toast.success('✅ Login successful! Redirecting...');
+      setTimeout(() => {
+        const role = localStorage.getItem('turnready_role');
+
+        if (role === 'tech') {
+          navigate('/tech-profile-setup');
+        } else if (role === 'client') {
+          navigate('/client-profile-setup');
+        } else {
+          navigate('/'); // fallback, shouldn't happen
+        }
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Login failed: ${err.message}`);
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-indigo-700 text-center">Log In</h2>
-
+    <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">🔐 Login to TurnReady</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
@@ -56,20 +69,19 @@ const Login = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            {loading ? 'Logging in...' : 'Log In'}
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          New here?{' '}
-          <Link to="/register" className="text-indigo-600 hover:underline">
-            Create an account
-          </Link>
+        <p className="text-sm mt-4 text-center">
+          Don’t have an account?{' '}
+          <a href="/register" className="text-blue-600 hover:underline">Sign up here</a>
         </p>
       </div>
     </div>
