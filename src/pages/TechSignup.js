@@ -1,5 +1,3 @@
-// src/pages/TechSignup.js
-
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
@@ -17,9 +15,11 @@ const TechSignup = () => {
 
   const [vehicleInsuranceFile, setVehicleInsuranceFile] = useState(null);
   const [liabilityInsuranceFile, setLiabilityInsuranceFile] = useState(null);
-  const [licenseFile, setLicenseFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [driversLicenseFile, setDriversLicenseFile] = useState(null);
+  const [epaLicenseFile, setEpaLicenseFile] = useState(null);
+  const [otherCertsFile, setOtherCertsFile] = useState(null);
 
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -38,50 +38,71 @@ const TechSignup = () => {
       return;
     }
 
-    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !licenseFile) {
-      toast.error('❌ Please upload all required documents.');
+    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !driversLicenseFile) {
+      toast.error('❌ Upload vehicle, liability, and driver’s license.');
       return;
     }
 
     setUploading(true);
 
     try {
-      // Sign up user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
       });
 
       if (signUpError) throw signUpError;
-
       const user = authData.user;
       if (!user) throw new Error('User not returned after signup.');
 
-      // Upload files (attached to auth.uid in filename for reference)
-      const uid = user.id;
       const timestamp = Date.now();
-
       const uploads = [
         {
           file: vehicleInsuranceFile,
-          path: `tech_docs/${uid}_${timestamp}_vehicle_${vehicleInsuranceFile.name}`,
+          path: `tech_docs/${timestamp}_vehicle_${vehicleInsuranceFile.name}`,
         },
         {
           file: liabilityInsuranceFile,
-          path: `tech_docs/${uid}_${timestamp}_liability_${liabilityInsuranceFile.name}`,
+          path: `tech_docs/${timestamp}_liability_${liabilityInsuranceFile.name}`,
         },
         {
-          file: licenseFile,
-          path: `tech_docs/${uid}_${timestamp}_license_${licenseFile.name}`,
+          file: driversLicenseFile,
+          path: `tech_docs/${timestamp}_drivers_${driversLicenseFile.name}`,
         },
+        ...(epaLicenseFile
+          ? [{ file: epaLicenseFile, path: `tech_docs/${timestamp}_epa_${epaLicenseFile.name}` }]
+          : []),
+        ...(otherCertsFile
+          ? [{ file: otherCertsFile, path: `tech_docs/${timestamp}_other_${otherCertsFile.name}` }]
+          : []),
       ];
 
       for (const { file, path } of uploads) {
-        const { error } = await supabase.storage
-          .from('uploads')
-          .upload(path, file, { upsert: true });
+        const { error } = await supabase.storage.from('uploads').upload(path, file, {
+          upsert: true,
+        });
         if (error) throw error;
       }
+
+      const { error: profileError } = await supabase.from('profiles').insert([
+        {
+          id: user.id,
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          region: form.region,
+          role: 'tech',
+          vehicle_insurance_url: uploads[0].path,
+          liability_insurance_url: uploads[1].path,
+          license_url: uploads[2].path,
+          epa_license_url: epaLicenseFile ? uploads[3]?.path : null,
+          other_certs_url: otherCertsFile
+            ? uploads[epaLicenseFile ? 4 : 3]?.path
+            : null,
+        },
+      ]);
+
+      if (profileError) throw profileError;
 
       toast.success('✅ Signup successful! Check your email to confirm your account.');
       navigate('/login');
@@ -108,6 +129,7 @@ const TechSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
           <input
             type="email"
             name="email"
@@ -117,6 +139,7 @@ const TechSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
           <input
             type="password"
             name="password"
@@ -126,6 +149,7 @@ const TechSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
           <input
             type="tel"
             name="phone"
@@ -157,9 +181,7 @@ const TechSignup = () => {
               name="custom_region"
               placeholder="Enter your city or region"
               value={form.custom_region || ''}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, custom_region: e.target.value }))
-              }
+              onChange={(e) => setForm((prev) => ({ ...prev, custom_region: e.target.value }))}
               className="w-full border rounded-lg p-3"
             />
           )}
@@ -185,12 +207,30 @@ const TechSignup = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload License Document</label>
+            <label className="block text-sm font-medium">Upload Driver’s License (Required)</label>
             <input
               type="file"
               accept="image/*,application/pdf"
-              onChange={(e) => setLicenseFile(e.target.files[0])}
+              onChange={(e) => setDriversLicenseFile(e.target.files[0])}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Upload EPA License (Optional)</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setEpaLicenseFile(e.target.files[0])}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Upload Other Certifications (Optional)</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setOtherCertsFile(e.target.files[0])}
             />
           </div>
 
