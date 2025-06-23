@@ -1,33 +1,96 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
-export default function Register() {
+const Register = () => {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    role: '', // 'tech' or 'client'
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.role) {
+      toast.error('❌ Please select a role (Tech or Client).');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (error) throw error;
+
+      // Save role in localStorage for later profile setup
+      localStorage.setItem('turnready_role', form.role);
+
+      toast.success('✅ Signup successful! Check your email to confirm.');
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+      toast.error(`Signup failed: ${err.message}`);
+    }
+    setLoading(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md text-center">
-        <h2 className="text-2xl font-bold mb-6 text-indigo-700">Create an Account</h2>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-6 text-blue-700">🚀 Create Account</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Create a Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <select
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          >
+            <option value="">Select Role</option>
+            <option value="tech">Technician</option>
+            <option value="client">Client</option>
+          </select>
 
-        <Link
-          to="/tech-signup"
-          className="block bg-blue-600 text-white py-3 rounded-lg mb-4 hover:bg-blue-700 transition"
-        >
-          🛠️ Sign up as a Technician
-        </Link>
-
-        <Link
-          to="/client-signup"
-          className="block bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
-        >
-          🏡 Sign up as a Client
-        </Link>
-
-        <p className="mt-6 text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-indigo-600 hover:underline">
-            Log in here
-          </Link>
-        </p>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            {loading ? 'Signing up...' : 'Create Account'}
+          </button>
+        </form>
       </div>
     </div>
   );
-}
+};
+
+export default Register;
