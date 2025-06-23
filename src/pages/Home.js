@@ -57,6 +57,13 @@ const Home = () => {
           >
             🧾 Client Dashboard
           </button>
+
+          <Link
+            to="/register"
+            className="block w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-6 rounded-xl transition"
+          >
+            ✍️ Not Registered Yet? Sign Up
+          </Link>
         </div>
       </div>
 
