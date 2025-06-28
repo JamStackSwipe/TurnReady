@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
   const navigate = useNavigate();
+  const turnstileRef = useRef();
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -13,22 +14,13 @@ const Register = () => {
     role: '',
   });
   const [loading, setLoading] = useState(false);
-  const tokenRef = useRef(null);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
-    if (!window.turnstile) {
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-      script.async = true;
-      document.body.appendChild(script);
-    } else {
-      window.turnstile.render('#turnstile-container', {
-        sitekey: '0x4AAAAAABiwQGcdykSxvgHa',
-        callback: (token) => {
-          tokenRef.current = token;
-        },
-      });
-    }
+    // Watch for Turnstile callback
+    window.turnstileCallback = function (token) {
+      setCaptchaToken(token);
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -38,18 +30,19 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.role) {
-      toast.error('❌ Please select a role (Tech or Client).');
-      return;
-    }
 
     if (form.password !== form.confirmPassword) {
       toast.error('❌ Passwords do not match.');
       return;
     }
 
-    if (!tokenRef.current) {
-      toast.error('❌ Bot verification failed. Please try again.');
+    if (!form.role) {
+      toast.error('❌ Please select a role (Tech or Client).');
+      return;
+    }
+
+    if (!captchaToken) {
+      toast.error('❌ Captcha failed. Try again.');
       return;
     }
 
@@ -63,6 +56,7 @@ const Register = () => {
       if (error) throw error;
 
       localStorage.setItem('turnready_role', form.role);
+
       toast.success('✅ Signup successful! Check your email to confirm.');
 
       if (form.role === 'tech') {
@@ -71,9 +65,9 @@ const Register = () => {
         navigate('/client-signup');
       }
     } catch (err) {
-      console.error(err);
       toast.error(`Signup failed: ${err.message}`);
     }
+
     setLoading(false);
   };
 
@@ -121,7 +115,13 @@ const Register = () => {
             <option value="client">Client</option>
           </select>
 
-          <div id="turnstile-container" className="my-4" />
+          {/* ✅ Cloudflare Turnstile widget */}
+          <div
+            className="cf-turnstile"
+            data-sitekey="0x4AAAAAABiwQGcdykSxvgHa"
+            data-callback="turnstileCallback"
+            ref={turnstileRef}
+          ></div>
 
           <button
             type="submit"
