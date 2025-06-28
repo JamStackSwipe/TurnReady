@@ -1,137 +1,61 @@
 // src/pages/Register.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import TurnstileWrapper from '../components/TurnstileWrapper';
+
+const SITE_KEY = "0x4AAAAAABiwQGcdykSxvgHa";
 
 const Register = () => {
   const navigate = useNavigate();
-  const turnstileRef = useRef();
   const [form, setForm] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: '',
+    email: '', password: '', confirmPassword: '', role: ''
   });
-  const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
-
-  useEffect(() => {
-    // Watch for Turnstile callback
-    window.turnstileCallback = function (token) {
-      setCaptchaToken(token);
-    };
-  }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (form.password !== form.confirmPassword) {
-      toast.error('❌ Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
-
     if (!form.role) {
-      toast.error('❌ Please select a role (Tech or Client).');
+      toast.error('Please select a role.');
       return;
     }
-
     if (!captchaToken) {
-      toast.error('❌ Captcha failed. Try again.');
+      toast.error('Captcha failed. Try again.');
       return;
     }
 
     setLoading(true);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-      });
-
-      if (error) throw error;
-
-      localStorage.setItem('turnready_role', form.role);
-
-      toast.success('✅ Signup successful! Check your email to confirm.');
-
-      if (form.role === 'tech') {
-        navigate('/tech-setup');
-      } else {
-        navigate('/client-signup');
-      }
-    } catch (err) {
-      toast.error(`Signup failed: ${err.message}`);
-    }
-
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+    });
     setLoading(false);
+
+    if (error) {
+      toast.error(`Signup failed: ${error.message}`);
+    } else {
+      localStorage.setItem('turnready_role', form.role);
+      toast.success('Signup successful — confirm via email.');
+      navigate(form.role === 'tech' ? '/tech-setup' : '/client-signup');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6 text-blue-700">🚀 Create Account</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Create a Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <select
-            name="role"
-            value={form.role}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          >
-            <option value="">Select Role</option>
-            <option value="tech">Technician</option>
-            <option value="client">Client</option>
-          </select>
-
-          {/* ✅ Cloudflare Turnstile widget */}
-          <div
-            className="cf-turnstile"
-            data-sitekey="0x4AAAAAABiwQGcdykSxvgHa"
-            data-callback="turnstileCallback"
-            ref={turnstileRef}
-          ></div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            {loading ? 'Signing up...' : 'Create Account'}
-          </button>
-        </form>
-      </div>
+    <div className="form-container">
+      <form onSubmit={handleSubmit}>
+        {/* email/password/confirm/role inputs */}
+        <TurnstileWrapper
+          siteKey={SITE_KEY}
+          onVerify={(token) => setCaptchaToken(token)}
+        />
+        <button disabled={loading}>Create Account</button>
+      </form>
     </div>
   );
 };
