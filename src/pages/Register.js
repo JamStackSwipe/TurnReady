@@ -1,3 +1,4 @@
+// src/pages/Register.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
@@ -23,22 +24,28 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!form.email || !form.password || !form.confirmPassword) {
+      toast.error('Please fill in all fields.');
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       toast.error('❌ Passwords do not match.');
       return;
     }
 
     if (!form.role) {
-      toast.error('❌ Please select a role (Tech or Client).');
+      toast.error('❌ Please select a role.');
       return;
     }
 
     if (!captchaToken) {
-      toast.error('❌ Captcha verification failed.');
+      toast.error('❌ Captcha verification failed. Please try again.');
       return;
     }
 
     setLoading(true);
+
     try {
       const { error } = await supabase.auth.signUp({
         email: form.email,
@@ -51,9 +58,9 @@ const Register = () => {
       if (error) throw error;
 
       localStorage.setItem('turnready_role', form.role);
-      toast.success('✅ Signup successful! Check your email to confirm.');
+      toast.success('✅ Signup successful! Please check your email to confirm.');
 
-      navigate(form.role === 'tech' ? '/tech-setup' : '/client-signup');
+      // ⚠️ Don't navigate yet — wait until user confirms via email
     } catch (err) {
       toast.error(`Signup failed: ${err.message}`);
     } finally {
@@ -105,11 +112,17 @@ const Register = () => {
             <option value="client">Client</option>
           </select>
 
-          {/* ✅ Cloudflare Turnstile widget */}
           <Turnstile
             sitekey="0x4AAAAAABiwQGcdykSxvgHa"
-            onSuccess={(token) => setCaptchaToken(token)}
-            onError={() => setCaptchaToken('')}
+            onSuccess={(token) => {
+              setCaptchaToken(token);
+              console.log('[Turnstile] Success:', token);
+            }}
+            onError={() => {
+              setCaptchaToken('');
+              console.warn('[Turnstile] Error');
+            }}
+            options={{ theme: 'light' }}
           />
 
           <button
