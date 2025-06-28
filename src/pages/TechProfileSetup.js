@@ -2,16 +2,20 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const TechProfileSetup = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     shirt_size: '',
     shipping_address: '',
     agree_terms: false,
     region: '',
   });
+
   const [licenseFile, setLicenseFile] = useState(null);
   const [insuranceFile, setInsuranceFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -40,19 +44,21 @@ const TechProfileSetup = () => {
         .upload(`licenses/${user.id}.jpg`, licenseFile, { upsert: true });
 
       if (licenseError) throw licenseError;
+      const licensePath = licenseUpload?.path;
 
       const { data: insuranceUpload, error: insuranceError } = await supabase.storage
         .from('tech-docs')
         .upload(`insurance/${user.id}.jpg`, insuranceFile, { upsert: true });
 
       if (insuranceError) throw insuranceError;
+      const insurancePath = insuranceUpload?.path;
 
       const { error: insertError } = await supabase.from('tech_profiles').upsert({
         user_id: user.id,
         shirt_size: form.shirt_size,
         shipping_address: form.shipping_address,
-        license_path: licenseUpload.path,
-        insurance_path: insuranceUpload.path,
+        license_path: licensePath,
+        insurance_path: insurancePath,
         region: form.region,
         status: 'pending',
       });
@@ -60,6 +66,8 @@ const TechProfileSetup = () => {
       if (insertError) throw insertError;
 
       toast.success('Profile submitted successfully!');
+      navigate('/tech-dashboard');
+
     } catch (err) {
       console.error(err);
       toast.error('Upload or database error.');
