@@ -1,3 +1,4 @@
+// src/pages/Login.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -25,18 +26,50 @@ const Login = () => {
 
       if (error) throw error;
 
-      // Wait a moment for auth state to sync
       toast.success('✅ Login successful! Redirecting...');
-      setTimeout(() => {
-        const role = localStorage.getItem('turnready_role');
 
-        if (role === 'tech') {
-          navigate('/tech-profile-setup');
-        } else if (role === 'client') {
-          navigate('/client-profile-setup');
-        } else {
-          navigate('/'); // fallback, shouldn't happen
+      // Wait for auth to sync and then check profile type
+      setTimeout(async () => {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          toast.error('Failed to fetch user info.');
+          return;
         }
+
+        const userId = user.id;
+
+        // Check tech_profiles table
+        const { data: techProfile } = await supabase
+          .from('tech_profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+
+        if (techProfile) {
+          localStorage.setItem('turnready_role', 'tech');
+          navigate('/tech-dashboard');
+          return;
+        }
+
+        // Check client_profiles table
+        const { data: clientProfile } = await supabase
+          .from('client_profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+
+        if (clientProfile) {
+          localStorage.setItem('turnready_role', 'client');
+          navigate('/client-dashboard');
+          return;
+        }
+
+        // If no profile found, redirect to role selection/setup
+        navigate('/choose-role');
       }, 1000);
     } catch (err) {
       console.error(err);
@@ -49,7 +82,9 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">🔐 Login to TurnReady</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">
+          🔐 Login to TurnReady
+        </h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
@@ -69,7 +104,6 @@ const Login = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <button
             type="submit"
             disabled={loading}
@@ -81,7 +115,9 @@ const Login = () => {
 
         <p className="text-sm mt-4 text-center">
           Don’t have an account?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">Sign up here</a>
+          <a href="/register" className="text-blue-600 hover:underline">
+            Sign up here
+          </a>
         </p>
       </div>
     </div>
