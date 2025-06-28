@@ -17,6 +17,11 @@ const Login = () => {
   };
 
   const handleLogin = async (captchaToken) => {
+    if (!form.email || !form.password) {
+      toast.error('Please enter your email and password.');
+      return;
+    }
+
     if (!captchaToken) {
       toast.error('Please complete CAPTCHA');
       return;
@@ -28,9 +33,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
-        options: {
-          captchaToken, // ✅ must be camelCase
-        },
+        options: { captchaToken },
       });
 
       if (error) throw error;
@@ -75,11 +78,11 @@ const Login = () => {
 
       navigate('/choose-role');
     } catch (err) {
-      console.error(err);
+      console.error('[Login Error]', err);
       toast.error(`Login failed: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -91,6 +94,10 @@ const Login = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!form.email || !form.password) {
+              toast.error('Email and password are required.');
+              return;
+            }
             if (turnstileRef.current) {
               turnstileRef.current.execute(); // trigger invisible CAPTCHA
             }
