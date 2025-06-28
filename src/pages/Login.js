@@ -31,7 +31,7 @@ const Login = () => {
         email: form.email,
         password: form.password,
         options: {
-          captchaToken,
+          captcha_token: captchaToken, // ✅ this is the critical fix
         },
       });
 
