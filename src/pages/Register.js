@@ -9,6 +9,7 @@ const Register = () => {
   const [form, setForm] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     role: '', // 'tech' or 'client'
   });
   const [loading, setLoading] = useState(false);
@@ -20,8 +21,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!form.role) {
       toast.error('❌ Please select a role (Tech or Client).');
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      toast.error('❌ Passwords do not match.');
       return;
     }
 
@@ -72,6 +79,15 @@ const Register = () => {
             name="password"
             placeholder="Create a Password"
             value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            value={form.confirmPassword}
             onChange={handleChange}
             required
             className="w-full border rounded-lg p-3"
