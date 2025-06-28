@@ -1,30 +1,19 @@
 // src/components/TurnstileWrapper.js
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-const TurnstileWrapper = forwardRef(({ onVerify, siteKey }, ref) => {
-  const divRef = useRef(null);
+const TurnstileWrapper = ({ onVerify }) => {
+  const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
-
-  useImperativeHandle(ref, () => ({
-    execute: () => {
-      if (window.turnstile && widgetIdRef.current !== null) {
-        try {
-          window.turnstile.execute(widgetIdRef.current);
-        } catch (err) {
-          // If it's already executing, reset then retry
-          window.turnstile.reset(widgetIdRef.current);
-          setTimeout(() => {
-            window.turnstile.execute(widgetIdRef.current);
-          }, 100);
-        }
-      }
-    },
-  }));
+  const siteKey = '0x4AAAAAABiwQGcdykSxvgHa'; // ✅ LIVE TurnReady site key
 
   useEffect(() => {
     const renderTurnstile = () => {
-      if (window.turnstile && divRef.current && widgetIdRef.current === null) {
-        widgetIdRef.current = window.turnstile.render(divRef.current, {
+      if (
+        window.turnstile &&
+        containerRef.current &&
+        widgetIdRef.current === null
+      ) {
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           callback: (token) => {
             if (typeof onVerify === 'function') {
@@ -32,27 +21,36 @@ const TurnstileWrapper = forwardRef(({ onVerify, siteKey }, ref) => {
             }
           },
           size: 'invisible',
+          theme: 'light',
         });
-      } else {
-        setTimeout(renderTurnstile, 100);
+
+        window.turnstile.execute(widgetIdRef.current);
       }
     };
 
-    // Load script once
+    // Inject Turnstile script only once
     if (!document.getElementById('cf-turnstile-script')) {
       const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.src =
+        'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
       script.id = 'cf-turnstile-script';
       script.async = true;
       script.defer = true;
-      script.onload = renderTurnstile;
       document.body.appendChild(script);
+      window.onTurnstileLoad = renderTurnstile;
     } else {
       renderTurnstile();
     }
-  }, [onVerify, siteKey]);
 
-  return <div ref={divRef} />;
-});
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+        widgetIdRef.current = null;
+      }
+    };
+  }, [onVerify]);
+
+  return <div ref={containerRef} />;
+};
 
 export default TurnstileWrapper;
