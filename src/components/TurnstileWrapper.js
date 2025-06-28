@@ -1,9 +1,11 @@
 // src/components/TurnstileWrapper.js
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function TurnstileWrapper({ onVerify, siteKey }) {
+  const divRef = useRef(null);
+
   useEffect(() => {
-    // Inject Turnstile script once
+    // Load Turnstile script only once
     if (!document.getElementById('cf-turnstile-script')) {
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
@@ -13,16 +15,25 @@ export default function TurnstileWrapper({ onVerify, siteKey }) {
       document.body.appendChild(script);
     }
 
-    // Common callback
+    // Setup global callback
     window.turnstileCallback = (token) => {
-      onVerify(token);
+      if (onVerify) onVerify(token);
     };
-  }, [onVerify]);
 
-  return (
-    <div
-      className="cf-turnstile"
-      data-sitekey={siteKey}
-      data-callback="turnstileCallback"
-    />
-  );
+    // Render the widget
+    const tryRender = () => {
+      if (window.turnstile && divRef.current) {
+        window.turnstile.render(divRef.current, {
+          sitekey: siteKey,
+          callback: 'turnstileCallback',
+        });
+      } else {
+        setTimeout(tryRender, 100);
+      }
+    };
+
+    tryRender();
+  }, [onVerify, siteKey]);
+
+  return <div ref={divRef} className="my-2" />;
+}
