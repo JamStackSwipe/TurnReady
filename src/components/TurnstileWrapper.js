@@ -1,11 +1,21 @@
 // src/components/TurnstileWrapper.js
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
-export default function TurnstileWrapper({ onVerify, siteKey }) {
+const TurnstileWrapper = forwardRef(({ onVerify, siteKey }, ref) => {
   const divRef = useRef(null);
 
+  useImperativeHandle(ref, () => ({
+    execute: () => {
+      if (window.turnstile && widgetId !== null) {
+        window.turnstile.execute(widgetId);
+      }
+    },
+  }));
+
+  let widgetId = null;
+
   useEffect(() => {
-    // Load Turnstile script only once
+    // Load script once
     if (!document.getElementById('cf-turnstile-script')) {
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
@@ -15,17 +25,20 @@ export default function TurnstileWrapper({ onVerify, siteKey }) {
       document.body.appendChild(script);
     }
 
-    // Setup global callback
-    window.turnstileCallback = (token) => {
-      if (onVerify) onVerify(token);
+    // Define global callback
+    window.turnstileCallback = function (token) {
+      if (typeof onVerify === 'function') {
+        onVerify(token);
+      }
     };
 
-    // Render the widget
+    // Render the invisible widget
     const tryRender = () => {
       if (window.turnstile && divRef.current) {
-        window.turnstile.render(divRef.current, {
-          sitekey: siteKey,
+        widgetId = window.turnstile.render(divRef.current, {
+          sitekey,
           callback: 'turnstileCallback',
+          size: 'invisible',
         });
       } else {
         setTimeout(tryRender, 100);
@@ -35,5 +48,7 @@ export default function TurnstileWrapper({ onVerify, siteKey }) {
     tryRender();
   }, [onVerify, siteKey]);
 
-  return <div ref={divRef} className="my-2" />;
-}
+  return <div ref={divRef} />;
+});
+
+export default TurnstileWrapper;
