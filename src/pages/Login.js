@@ -8,30 +8,28 @@ import TurnstileWrapper from '../components/TurnstileWrapper';
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const turnstileRef = useRef(null);
   const navigate = useNavigate();
-  const turnstileRef = useRef(null); // ref to control invisible captcha
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // This is only called AFTER Turnstile verifies the user
   const handleLogin = async (captchaToken) => {
-    setLoading(true);
-
     if (!captchaToken) {
-      toast.error('Please complete the CAPTCHA');
-      setLoading(false);
+      toast.error('Please complete CAPTCHA');
       return;
     }
+
+    setLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
         options: {
-          captcha_token: captchaToken, // must be underscored
+          captchaToken, // ✅ must be camelCase
         },
       });
 
@@ -39,45 +37,43 @@ const Login = () => {
 
       toast.success('✅ Login successful! Redirecting...');
 
-      setTimeout(async () => {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-        if (userError || !user) {
-          toast.error('Failed to fetch user info.');
-          return;
-        }
+      if (userError || !user) {
+        toast.error('Failed to fetch user info.');
+        return;
+      }
 
-        const userId = user.id;
+      const userId = user.id;
 
-        const { data: techProfile } = await supabase
-          .from('tech_profiles')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
+      const { data: techProfile } = await supabase
+        .from('tech_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-        if (techProfile) {
-          localStorage.setItem('turnready_role', 'tech');
-          navigate('/tech-dashboard');
-          return;
-        }
+      if (techProfile) {
+        localStorage.setItem('turnready_role', 'tech');
+        navigate('/tech-dashboard');
+        return;
+      }
 
-        const { data: clientProfile } = await supabase
-          .from('client_profiles')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
+      const { data: clientProfile } = await supabase
+        .from('client_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-        if (clientProfile) {
-          localStorage.setItem('turnready_role', 'client');
-          navigate('/client-dashboard');
-          return;
-        }
+      if (clientProfile) {
+        localStorage.setItem('turnready_role', 'client');
+        navigate('/client-dashboard');
+        return;
+      }
 
-        navigate('/choose-role');
-      }, 1000);
+      navigate('/choose-role');
     } catch (err) {
       console.error(err);
       toast.error(`Login failed: ${err.message}`);
@@ -96,7 +92,7 @@ const Login = () => {
           onSubmit={(e) => {
             e.preventDefault();
             if (turnstileRef.current) {
-              turnstileRef.current.execute(); // Manually trigger invisible CAPTCHA
+              turnstileRef.current.execute(); // trigger invisible CAPTCHA
             }
           }}
           className="space-y-4"
@@ -123,7 +119,7 @@ const Login = () => {
           <TurnstileWrapper
             ref={turnstileRef}
             siteKey="0x4AAAAAABiwQGcdykSxvgHa"
-            onVerify={(token) => handleLogin(token)} // Once verified, trigger login
+            onVerify={handleLogin}
           />
 
           <button
