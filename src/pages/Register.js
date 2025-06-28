@@ -1,5 +1,4 @@
-// src/pages/Register.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -10,9 +9,27 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '', // 'tech' or 'client'
+    role: '',
   });
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState('');
+
+  // Turnstile site key from your Cloudflare dashboard
+  const siteKey = 'YOUR_TURNSTILE_SITE_KEY'; // ← replace this with your real one
+
+  useEffect(() => {
+    // Inject Turnstile script
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    // Setup listener to capture token
+    window.turnstileCallback = function (token) {
+      setToken(token);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,6 +49,11 @@ const Register = () => {
       return;
     }
 
+    if (!token) {
+      toast.error('❌ Please complete the Turnstile verification.');
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -41,18 +63,14 @@ const Register = () => {
 
       if (error) throw error;
 
-      // Save role locally for login redirect logic
       localStorage.setItem('turnready_role', form.role);
-
       toast.success('✅ Signup successful! Check your email to confirm.');
 
-      // ✅ Fixed redirect paths
       if (form.role === 'tech') {
         navigate('/tech-setup');
       } else {
         navigate('/client-signup');
       }
-
     } catch (err) {
       console.error(err);
       toast.error(`Signup failed: ${err.message}`);
@@ -103,6 +121,13 @@ const Register = () => {
             <option value="tech">Technician</option>
             <option value="client">Client</option>
           </select>
+
+          {/* Turnstile Widget */}
+          <div
+            className="cf-turnstile"
+            data-sitekey={siteKey}
+            data-callback="turnstileCallback"
+          ></div>
 
           <button
             type="submit"
