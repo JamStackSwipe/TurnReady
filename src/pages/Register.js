@@ -1,3 +1,4 @@
+// src/pages/Register.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
@@ -33,11 +34,18 @@ const Register = () => {
 
       if (error) throw error;
 
-      // Save role in localStorage for later profile setup
+      // Save role locally for login redirect logic
       localStorage.setItem('turnready_role', form.role);
 
       toast.success('✅ Signup successful! Check your email to confirm.');
-      navigate('/login');
+      
+      // Immediately go to setup page so user can complete onboarding
+      if (form.role === 'tech') {
+        navigate('/tech-profile-setup');
+      } else {
+        navigate('/client-profile-setup');
+      }
+
     } catch (err) {
       console.error(err);
       toast.error(`Signup failed: ${err.message}`);
