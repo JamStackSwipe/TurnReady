@@ -21,6 +21,8 @@ import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
 import RequestRegion from './pages/RequestRegion';
 import ResetPassword from './pages/ResetPassword';
+import AuthRedirectHandler from './pages/AuthRedirectHandler';
+
 
 // Job Pages
 import SubmitJob from './pages/SubmitJob';
