@@ -3,19 +3,18 @@ import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 const TurnstileWrapper = forwardRef(({ onVerify, siteKey }, ref) => {
   const divRef = useRef(null);
+  const widgetIdRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     execute: () => {
-      if (window.turnstile && widgetId !== null) {
-        window.turnstile.execute(widgetId);
+      if (window.turnstile && widgetIdRef.current !== null) {
+        window.turnstile.execute(widgetIdRef.current);
       }
     },
   }));
 
-  let widgetId = null;
-
   useEffect(() => {
-    // Load script once
+    // Inject Turnstile script only once
     if (!document.getElementById('cf-turnstile-script')) {
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
@@ -32,11 +31,11 @@ const TurnstileWrapper = forwardRef(({ onVerify, siteKey }, ref) => {
       }
     };
 
-    // Render the invisible widget
+    // Poll for render-ready and mount invisible widget
     const tryRender = () => {
       if (window.turnstile && divRef.current) {
-        widgetId = window.turnstile.render(divRef.current, {
-          sitekey,
+        widgetIdRef.current = window.turnstile.render(divRef.current, {
+          sitekey: siteKey, // ✅ correct camelCase use
           callback: 'turnstileCallback',
           size: 'invisible',
         });
