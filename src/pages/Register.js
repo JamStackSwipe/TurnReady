@@ -52,6 +52,7 @@ const Register = () => {
         password: form.password,
         options: {
           captchaToken,
+          emailRedirectTo: 'https://www.turnready.pro/confirm', // ✅ Correct redirect
         },
       });
 
@@ -60,7 +61,6 @@ const Register = () => {
       localStorage.setItem('turnready_role', form.role);
       toast.success('✅ Signup successful! Please check your email to confirm.');
 
-      // ⚠️ Don't navigate yet — wait until user confirms via email
     } catch (err) {
       toast.error(`Signup failed: ${err.message}`);
     } finally {
