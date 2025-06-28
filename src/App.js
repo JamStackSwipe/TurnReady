@@ -79,6 +79,8 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/request-region" element={<RequestRegion />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/confirm" element={<AuthRedirectHandler />} />
+
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
