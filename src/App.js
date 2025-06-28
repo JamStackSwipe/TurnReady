@@ -20,6 +20,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
 import RequestRegion from './pages/RequestRegion';
+import ResetPassword from './pages/ResetPassword';
 
 // Job Pages
 import SubmitJob from './pages/SubmitJob';
@@ -77,6 +78,7 @@ function App() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/request-region" element={<RequestRegion />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
