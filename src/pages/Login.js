@@ -109,9 +109,10 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="text-sm text-center mt-4">
-          <a href="/forgot-password" className="text-blue-600 hover:underline">
-            Forgot your password?
+        <p className="text-sm mt-4 text-center">
+          Forgot your password?{' '}
+          <a href="/resetpassword" className="text-blue-600 hover:underline">
+            Reset it here
           </a>
         </p>
 
