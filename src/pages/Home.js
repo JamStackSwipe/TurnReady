@@ -1,10 +1,19 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../components/AuthProvider';
 
 const Home = () => {
   const { user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ Redirect to reset-password page if URL contains recovery token
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('type') === 'recovery' && params.get('access_token')) {
+      navigate('/reset-password' + location.search);
+    }
+  }, [location, navigate]);
 
   const handleTechClick = () => {
     if (user) {
