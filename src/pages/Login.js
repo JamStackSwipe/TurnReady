@@ -28,7 +28,6 @@ const Login = () => {
 
       toast.success('✅ Login successful! Redirecting...');
 
-      // Wait for auth to sync and then check profile type
       setTimeout(async () => {
         const {
           data: { user },
@@ -42,7 +41,6 @@ const Login = () => {
 
         const userId = user.id;
 
-        // Check tech_profiles table
         const { data: techProfile } = await supabase
           .from('tech_profiles')
           .select('id')
@@ -55,7 +53,6 @@ const Login = () => {
           return;
         }
 
-        // Check client_profiles table
         const { data: clientProfile } = await supabase
           .from('client_profiles')
           .select('id')
@@ -68,7 +65,6 @@ const Login = () => {
           return;
         }
 
-        // If no profile found, redirect to role selection/setup
         navigate('/choose-role');
       }, 1000);
     } catch (err) {
@@ -113,7 +109,13 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="text-sm mt-4 text-center">
+        <p className="text-sm text-center mt-4">
+          <a href="/forgot-password" className="text-blue-600 hover:underline">
+            Forgot your password?
+          </a>
+        </p>
+
+        <p className="text-sm mt-2 text-center">
           Don’t have an account?{' '}
           <a href="/register" className="text-blue-600 hover:underline">
             Sign up here
