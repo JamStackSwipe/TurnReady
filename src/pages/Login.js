@@ -1,5 +1,5 @@
 // src/pages/Login.js
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -8,16 +8,16 @@ import TurnstileWrapper from '../components/TurnstileWrapper';
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState(null);
   const navigate = useNavigate();
+  const turnstileRef = useRef(null); // ref to control invisible captcha
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // This is only called AFTER Turnstile verifies the user
+  const handleLogin = async (captchaToken) => {
     setLoading(true);
 
     if (!captchaToken) {
@@ -31,7 +31,7 @@ const Login = () => {
         email: form.email,
         password: form.password,
         options: {
-          captcha_token: captchaToken, // ✅ this is the critical fix
+          captcha_token: captchaToken, // must be underscored
         },
       });
 
@@ -92,7 +92,15 @@ const Login = () => {
         <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">
           🔐 Login to TurnReady
         </h1>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (turnstileRef.current) {
+              turnstileRef.current.execute(); // Manually trigger invisible CAPTCHA
+            }
+          }}
+          className="space-y-4"
+        >
           <input
             type="email"
             name="email"
@@ -113,8 +121,9 @@ const Login = () => {
           />
 
           <TurnstileWrapper
+            ref={turnstileRef}
             siteKey="0x4AAAAAABiwQGcdykSxvgHa"
-            onVerify={(token) => setCaptchaToken(token)}
+            onVerify={(token) => handleLogin(token)} // Once verified, trigger login
           />
 
           <button
