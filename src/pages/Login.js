@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import TurnstileWrapper from '../components/TurnstileWrapper';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -18,10 +20,19 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
+    if (!captchaToken) {
+      toast.error('Please complete the CAPTCHA');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
+        options: {
+          captchaToken,
+        },
       });
 
       if (error) throw error;
@@ -100,6 +111,12 @@ const Login = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
+          <TurnstileWrapper
+            siteKey="0x4AAAAAABiwQGcdykSxvgHa"
+            onVerify={(token) => setCaptchaToken(token)}
+          />
+
           <button
             type="submit"
             disabled={loading}
