@@ -38,12 +38,12 @@ const Register = () => {
       localStorage.setItem('turnready_role', form.role);
 
       toast.success('✅ Signup successful! Check your email to confirm.');
-      
-      // Immediately go to setup page so user can complete onboarding
+
+      // ✅ Fixed redirect paths
       if (form.role === 'tech') {
-        navigate('/tech-profile-setup');
+        navigate('/tech-setup');
       } else {
-        navigate('/client-profile-setup');
+        navigate('/client-signup');
       }
 
     } catch (err) {
