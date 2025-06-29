@@ -1,3 +1,4 @@
+// src/pages/Profile.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -69,7 +70,7 @@ const Profile = () => {
     toast.success(`Role set to ${role}`);
 
     if (role === 'tech') {
-      navigate('/tech-setup');
+      navigate('/tech-signup'); // ✅ fixed route
     } else {
       navigate('/client-signup');
     }
@@ -82,7 +83,9 @@ const Profile = () => {
       <div className="bg-white shadow-lg rounded-xl p-8 max-w-md w-full text-center">
         <h1 className="text-xl font-semibold mb-4">👤 Welcome to TurnReady</h1>
         {profile.role ? (
-          <p className="text-gray-600">Your role is set to <strong>{profile.role}</strong>. You’ll be redirected automatically.</p>
+          <p className="text-gray-600">
+            Your role is set to <strong>{profile.role}</strong>. You’ll be redirected automatically.
+          </p>
         ) : (
           <>
             <p className="mb-6">Please select your role to complete setup:</p>
