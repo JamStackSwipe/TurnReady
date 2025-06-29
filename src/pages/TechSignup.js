@@ -6,131 +6,174 @@ import toast from 'react-hot-toast';
 
 const TechSignup = () => {
   const { user } = useUser();
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
+    region: '',
     address: '',
     zip: '',
-    region: '',
   });
 
   const [uploads, setUploads] = useState({
-    driverLicense: null,
-    epaLicense: null,
-    liabilityInsurance: null,
-    otherCerts: null,
-    truckPhoto: null,
-    toolPhoto: null,
+    drivers_license_url: '',
+    epa_license_url: '',
+    vehicle_insurance_url: '',
+    liability_insurance_url: '',
+    truck_photo_url: '',
+    tool_photo_url: '',
+    other_certifications_url: '',
   });
-
-  const [uploading, setUploading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setUploads((prev) => ({ ...prev, [name]: files[0] }));
-  };
+  const handleFileChange = async (e, fieldName) => {
+    const file = e.target.files[0];
+    if (!file || !user) return;
 
-  const uploadFile = async (file, path) => {
-    if (!file) return null;
-    const { data, error } = await supabase.storage
-      .from('tech-docs')
-      .upload(`${user.id}/${path}`, file, { upsert: true });
-    if (error) throw error;
-    const { data: publicUrlData } = supabase.storage
-      .from('tech-docs')
-      .getPublicUrl(`${user.id}/${path}`);
-    return publicUrlData.publicUrl;
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/${fieldName}.${fileExt}`;
+
+    const { error, data } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file, { upsert: true });
+
+    if (error) {
+      toast.error(`Failed to upload ${fieldName}`);
+      setUploading(false);
+      return;
+    }
+
+    const { publicURL } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    setUploads((prev) => ({
+      ...prev,
+      [fieldName]: publicURL,
+    }));
+
+    setUploading(false);
+    toast.success(`${fieldName.replaceAll('_', ' ')} uploaded`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return toast.error('Not logged in');
-    setUploading(true);
+    if (!user) return;
 
-    try {
-      const driverUrl = await uploadFile(uploads.driverLicense, 'driver_license');
-      const epaUrl = await uploadFile(uploads.epaLicense, 'epa_license');
-      const liabilityUrl = await uploadFile(uploads.liabilityInsurance, 'liability');
-      const otherUrl = await uploadFile(uploads.otherCerts, 'other_certs');
-      const truckUrl = await uploadFile(uploads.truckPhoto, 'truck_photo');
-      const toolUrl = await uploadFile(uploads.toolPhoto, 'tool_photo');
+    const update = {
+      ...formData,
+      ...uploads,
+      zip: formData.zip,
+      onboarding_complete: true,
+      updated_at: new Date().toISOString(),
+    };
 
-      const { error } = await supabase.from('profiles').upsert({
-        id: user.id,
-        full_name: formData.full_name,
-        phone: formData.phone,
-        address: `${formData.address}, ${formData.zip}`,
-        region: formData.region,
-        vehicle_insurance_url: null,
-        liability_insurance_url: liabilityUrl,
-        epa_license_url: epaUrl,
-        other_certifications_url: otherUrl,
-        truck_photo_url: truckUrl,
-        tool_photo_url: toolUrl,
-        onboarding_complete: true,
-      });
+    const { error } = await supabase
+      .from('profiles')
+      .update(update)
+      .eq('id', user.id);
 
-      if (error) {
-        console.error(error);
-        toast.error('Error submitting tech profile');
-      } else {
-        toast.success('Profile submitted!');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Upload failed');
-    } finally {
-      setUploading(false);
+    if (error) {
+      toast.error('Error submitting tech profile');
+      console.error(error);
+    } else {
+      toast.success('Profile submitted successfully');
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h2 className="text-xl font-bold mb-4">Technician Signup</h2>
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
+      <h1 className="text-2xl font-bold mb-4">Tech Profile Setup</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="text" name="full_name" placeholder="Full Name" value={formData.full_name} onChange={handleChange} className="w-full border p-2" required />
-        <input type="text" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="w-full border p-2" required />
-        <input type="text" name="address" placeholder="Street Address" value={formData.address} onChange={handleChange} className="w-full border p-2" required />
-        <input type="text" name="zip" placeholder="Zip Code" value={formData.zip} onChange={handleChange} className="w-full border p-2" required />
-        <input type="text" name="region" placeholder="Service Region (e.g. Broken Bow)" value={formData.region} onChange={handleChange} className="w-full border p-2" required />
+        <input
+          type="text"
+          name="full_name"
+          placeholder="Full Name"
+          value={formData.full_name}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+        <input
+          type="text"
+          name="phone"
+          placeholder="Phone"
+          value={formData.phone}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+        <input
+          type="text"
+          name="region"
+          placeholder="Service Region"
+          value={formData.region}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+        <input
+          type="text"
+          name="address"
+          placeholder="Mailing Address"
+          value={formData.address}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+        />
+        <input
+          type="text"
+          name="zip"
+          placeholder="Zip Code"
+          value={formData.zip}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
 
-        <div className="border-t pt-4">
-          <label className="block mb-1 font-medium">Driver’s License (Required)</label>
-          <input type="file" name="driverLicense" onChange={handleFileChange} accept="image/*,.pdf" required />
+        {/* Upload Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            ['drivers_license_url', 'Driver’s License'],
+            ['epa_license_url', 'EPA License'],
+            ['vehicle_insurance_url', 'Vehicle Insurance Policy'],
+            ['liability_insurance_url', 'Liability Insurance (optional)'],
+            ['truck_photo_url', 'Photo of Truck'],
+            ['tool_photo_url', 'Photo of Tools'],
+            ['other_certifications_url', 'Other Certifications (optional)'],
+          ].map(([field, label]) => (
+            <div key={field}>
+              <label className="block font-medium">{label}</label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => handleFileChange(e, field)}
+                className="w-full border px-2 py-1"
+              />
+              {uploads[field] && (
+                <a
+                  href={uploads[field]}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-blue-600 underline"
+                >
+                  View uploaded file
+                </a>
+              )}
+            </div>
+          ))}
         </div>
 
-        <div>
-          <label className="block mb-1 font-medium">EPA License (Required)</label>
-          <input type="file" name="epaLicense" onChange={handleFileChange} accept="image/*,.pdf" required />
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Truck Photo (Required)</label>
-          <input type="file" name="truckPhoto" onChange={handleFileChange} accept="image/*" required />
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Tool Photo (Required)</label>
-          <input type="file" name="toolPhoto" onChange={handleFileChange} accept="image/*" required />
-        </div>
-
-        <div>
-          <label className="block mb-1">General Liability Insurance (Optional)</label>
-          <input type="file" name="liabilityInsurance" onChange={handleFileChange} accept="image/*,.pdf" />
-        </div>
-
-        <div>
-          <label className="block mb-1">Other Certifications (Optional)</label>
-          <input type="file" name="otherCerts" onChange={handleFileChange} accept="image/*,.pdf" />
-        </div>
-
-        <button type="submit" disabled={uploading} className="bg-blue-600 text-white px-4 py-2 rounded">
-          {uploading ? 'Submitting...' : 'Submit Profile'}
+        <button
+          type="submit"
+          disabled={uploading}
+          className="bg-blue-600 text-white px-6 py-2 rounded"
+        >
+          {uploading ? 'Uploading...' : 'Submit Profile'}
         </button>
       </form>
     </div>
