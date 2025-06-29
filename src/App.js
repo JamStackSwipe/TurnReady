@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Toaster } from 'react-hot-toast';
 import { supabase } from './supabaseClient';
 
+import { AuthProvider } from './components/AuthProvider'; // ✅ Added
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import RequireRole from './components/RequireRole';
@@ -21,7 +22,7 @@ import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
 import RequestRegion from './pages/RequestRegion';
 import ResetPassword from './pages/ResetPassword';
-import Confirm from './pages/Confirm'; // ✅ Updated
+import Confirm from './pages/Confirm';
 
 import SubmitJob from './pages/SubmitJob';
 import JobBoard from './pages/JobBoard';
@@ -101,7 +102,7 @@ function AppWrapper() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/request-region" element={<RequestRegion />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/confirm" element={<Confirm />} /> {/* ✅ fixed */}
+        <Route path="/confirm" element={<Confirm />} />
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
@@ -220,9 +221,11 @@ function AppWrapper() {
 
 function App() {
   return (
-    <Router>
-      <AppWrapper />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppWrapper />
+      </Router>
+    </AuthProvider>
   );
 }
 
