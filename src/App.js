@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -154,6 +155,19 @@ function AppWrapper() {
         <Route path="/complete-job/:jobId" element={
           <RequireRole allowedRoles={['tech', 'admin']}>
             <CompleteJob />
+          </RequireRole>
+        } />
+        <Route path="/complete-job" element={
+          <RequireRole allowedRoles={['tech', 'admin']}>
+            <div className="min-h-screen flex flex-col items-center justify-center text-center p-6 text-red-600 text-lg">
+              ⚠️ Missing Job ID. Please return to your jobs list.
+              <a
+                href="/my-jobs"
+                className="mt-4 inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                🔙 Go to My Jobs
+              </a>
+            </div>
           </RequireRole>
         } />
         <Route path="/tech-notes/:jobId" element={
