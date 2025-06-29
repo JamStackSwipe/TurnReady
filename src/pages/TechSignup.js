@@ -108,11 +108,11 @@ const TechSignup = () => {
 
         {/* Required Uploads */}
         <div>
-          <label className="block font-semibold">Driver's License</label>
+          <label className="block font-semibold">Driver's License (PDF or image)</label>
           <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'drivers_license_url')} />
         </div>
         <div>
-          <label className="block font-semibold">EPA License</label>
+          <label className="block font-semibold">EPA License (PDF or image)</label>
           <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'epa_license_url')} />
         </div>
         <div>
