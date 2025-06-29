@@ -1,12 +1,13 @@
 // src/App.js
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { supabase } from './supabaseClient';
+
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import RequireRole from './components/RequireRole';
-import { useUser } from './components/AuthProvider';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -56,8 +57,31 @@ import NotificationsInbox from './pages/NotificationsInbox';
 import ReferralSystem from './pages/ReferralSystem';
 
 function AppWrapper() {
-  const { user, profile, loading } = useUser();
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      setSession(user);
+
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (!error) setProfile(data);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, [location.pathname]);
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -66,6 +90,7 @@ function AppWrapper() {
       <Navbar />
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
+        {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -80,38 +105,18 @@ function AppWrapper() {
         <Route path="/confirm" element={<AuthRedirectHandler />} />
 
         {/* Job Pages */}
-        <Route path="/submit-job" element={
-          <RequireRole allowedRoles={['client', 'admin']}>
-            <SubmitJob />
-          </RequireRole>
-        } />
+        <Route path="/submit-job" element={<SubmitJob />} />
         <Route path="/job-board" element={
-          <RequireRole allowedRoles={['tech', 'admin']}>
+          <RequireRole allowedRoles={['tech', 'admin', 'client']}>
             <JobBoard />
           </RequireRole>
         } />
-        <Route path="/job/:id" element={
-          <RequireRole allowedRoles={['tech', 'client', 'admin']}>
-            <JobDetails />
-          </RequireRole>
-        } />
-        <Route path="/job-update/:jobId" element={
-          <RequireRole allowedRoles={['client', 'admin']}>
-            <JobUpdate />
-          </RequireRole>
-        } />
-        <Route path="/parts-request/:jobId" element={
-          <RequireRole allowedRoles={['tech', 'admin']}>
-            <PartsRequest />
-          </RequireRole>
-        } />
-        <Route path="/parts-request" element={
-          <RequireRole allowedRoles={['tech', 'admin']}>
-            <PartsRequest />
-          </RequireRole>
-        } />
+        <Route path="/job/:id" element={<JobDetails />} />
+        <Route path="/job-update/:jobId" element={<JobUpdate />} />
+        <Route path="/parts-request" element={<PartsRequest />} />
+        <Route path="/parts-request/:jobId" element={<PartsRequest />} />
 
-        {/* Utilities */}
+        {/* System Utilities */}
         <Route path="/notifications" element={<NotificationsInbox />} />
         <Route path="/payment-history" element={<PaymentHistory />} />
         <Route path="/disputes" element={<DisputeCenter />} />
@@ -119,7 +124,7 @@ function AppWrapper() {
         <Route path="/system-logs" element={<SystemLogViewer />} />
         <Route path="/referrals" element={<ReferralSystem />} />
 
-        {/* Client */}
+        {/* Client Views */}
         <Route path="/client-dashboard" element={
           <RequireRole allowedRoles={['client', 'admin']}>
             <ClientDashboard />
@@ -136,7 +141,7 @@ function AppWrapper() {
           </RequireRole>
         } />
 
-        {/* Tech */}
+        {/* Tech Views */}
         <Route path="/tech-dashboard" element={
           <RequireRole allowedRoles={['tech', 'admin']}>
             <TechDashboard />
@@ -152,6 +157,7 @@ function AppWrapper() {
             <TechProfileSetup />
           </RequireRole>
         } />
+        <Route path="/complete-job" element={<Navigate to="/my-jobs" />} />
         <Route path="/complete-job/:jobId" element={
           <RequireRole allowedRoles={['tech', 'admin']}>
             <CompleteJob />
@@ -163,7 +169,7 @@ function AppWrapper() {
           </RequireRole>
         } />
 
-        {/* Admin */}
+        {/* Admin Views */}
         <Route path="/admin" element={
           <RequireRole allowedRoles={['admin']}>
             <AdminDashboard />
@@ -210,7 +216,7 @@ function AppWrapper() {
           </RequireRole>
         } />
 
-        {/* Catch all */}
+        {/* Catch-all */}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
       <Footer />
