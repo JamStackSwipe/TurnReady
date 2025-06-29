@@ -1,205 +1,134 @@
 // src/pages/TechSignup.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
 
 const TechSignup = () => {
+  const navigate = useNavigate();
   const { user } = useUser();
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
+    region: '',
     address: '',
+    agree_terms: false,
   });
 
   const [uploads, setUploads] = useState({
-    drivers_license: null,
-    auto_insurance: null,
-    epa_license: null,
-    truck_photo: null,
-    tools_photo: null,
-    liability_insurance: null,
-    other_certifications: null,
+    vehicle_insurance_url: null,
+    liability_insurance_url: null,
+    epa_license_url: null,
+    truck_photo_url: null,
+    tool_photo_url: null,
+    other_certifications_url: null,
   });
 
-  const [uploading, setUploading] = useState(false);
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-    setUploads((prev) => ({ ...prev, [name]: files[0] }));
+    setUploads((prev) => ({
+      ...prev,
+      [name]: files[0] || null,
+    }));
   };
 
-  const uploadFile = async (file, path) => {
-    const { data, error } = await supabase.storage
-      .from('tech-docs')
-      .upload(`${user.id}/${path}`, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
-
+  const uploadFile = async (file, pathPrefix) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${pathPrefix}/${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from('documents').upload(fileName, file);
     if (error) throw error;
-    return data.path;
+    const { data } = supabase.storage.from('documents').getPublicUrl(fileName);
+    return data.publicUrl;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.agree_terms) {
+      toast.error('You must agree to the terms.');
+      return;
+    }
 
-    setUploading(true);
     try {
-      const uploadedPaths = {};
+      setUploading(true);
 
+      // Upload all files
+      const uploadedUrls = {};
       for (const [key, file] of Object.entries(uploads)) {
         if (file) {
-          const path = await uploadFile(file, key);
-          uploadedPaths[key] = path;
+          const url = await uploadFile(file, `tech_docs/${user.id}/${key}`);
+          uploadedUrls[key] = url;
         }
       }
 
-      const { error: updateError } = await supabase
+      const update = {
+        ...formData,
+        ...uploadedUrls,
+        onboarding_complete: true,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
         .from('profiles')
-        .update({
-          ...formData,
-          onboarding_complete: true,
-          ...uploadedPaths,
-        })
+        .update(update)
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      toast.success('✅ Profile updated successfully!');
+      toast.success('Tech profile submitted!');
+      navigate('/tech-dashboard');
     } catch (err) {
-      console.error(err);
-      toast.error(`❌ ${err.message}`);
+      console.error('Error submitting tech profile:', err);
+      toast.error('❌ Error submitting tech profile');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">🛠️ Tech Signup</h1>
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="max-w-xl mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-4">Tech Profile Setup</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input type="text" name="full_name" placeholder="Full Name" className="w-full p-2 border rounded" value={formData.full_name} onChange={handleChange} />
+        <input type="text" name="phone" placeholder="Phone" className="w-full p-2 border rounded" value={formData.phone} onChange={handleChange} />
+        <input type="text" name="region" placeholder="Service Region" className="w-full p-2 border rounded" value={formData.region} onChange={handleChange} />
+        <input type="text" name="address" placeholder="Mailing Address" className="w-full p-2 border rounded" value={formData.address} onChange={handleChange} />
 
-        {/* Basic Info */}
-        <div className="space-y-4">
-          <input
-            name="full_name"
-            placeholder="Full Name"
-            value={formData.full_name}
-            onChange={handleChange}
-            className="w-full border rounded p-3"
-            required
-          />
-          <input
-            name="phone"
-            placeholder="Phone Number"
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full border rounded p-3"
-            required
-          />
-          <input
-            name="address"
-            placeholder="Address"
-            value={formData.address}
-            onChange={handleChange}
-            className="w-full border rounded p-3"
-            required
-          />
-        </div>
+        {/* Uploads */}
+        <label className="block mt-4">Driver's License / EPA License (PDF or image)</label>
+        <input type="file" name="epa_license_url" onChange={handleFileChange} />
 
-        {/* Required Uploads */}
-        <div className="space-y-4">
-          <label className="block">
-            Driver’s License (Required)
-            <input
-              type="file"
-              name="drivers_license"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-              required
-            />
-          </label>
+        <label className="block mt-4">Auto Insurance</label>
+        <input type="file" name="vehicle_insurance_url" onChange={handleFileChange} />
 
-          <label className="block">
-            Auto Insurance (Required)
-            <input
-              type="file"
-              name="auto_insurance"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-              required
-            />
-          </label>
+        <label className="block mt-4">Liability Insurance</label>
+        <input type="file" name="liability_insurance_url" onChange={handleFileChange} />
 
-          <label className="block">
-            EPA License (Required)
-            <input
-              type="file"
-              name="epa_license"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-              required
-            />
-          </label>
+        <label className="block mt-4">Truck Photo</label>
+        <input type="file" name="truck_photo_url" onChange={handleFileChange} />
 
-          <label className="block">
-            Truck Photo (Required)
-            <input
-              type="file"
-              name="truck_photo"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-              required
-            />
-          </label>
+        <label className="block mt-4">Tool Photo</label>
+        <input type="file" name="tool_photo_url" onChange={handleFileChange} />
 
-          <label className="block">
-            Tools Photo (Required)
-            <input
-              type="file"
-              name="tools_photo"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-              required
-            />
-          </label>
-        </div>
+        <label className="block mt-4">Other Certifications</label>
+        <input type="file" name="other_certifications_url" onChange={handleFileChange} />
 
-        {/* Optional Uploads */}
-        <div className="space-y-4 pt-4 border-t">
-          <label className="block">
-            General Liability Insurance (Optional)
-            <input
-              type="file"
-              name="liability_insurance"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-            />
-          </label>
+        <label className="flex items-center mt-4">
+          <input type="checkbox" name="agree_terms" checked={formData.agree_terms} onChange={handleChange} className="mr-2" />
+          I agree to the terms and conditions.
+        </label>
 
-          <label className="block">
-            Other Certifications (Optional)
-            <input
-              type="file"
-              name="other_certifications"
-              onChange={handleFileChange}
-              className="mt-1 block w-full"
-            />
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={uploading}
-          className="bg-blue-600 text-white py-3 px-6 rounded hover:bg-blue-700 transition"
-        >
-          {uploading ? 'Uploading...' : 'Submit Profile'}
+        <button type="submit" disabled={uploading} className="bg-blue-600 text-white py-2 px-4 rounded w-full mt-4">
+          {uploading ? 'Submitting...' : 'Submit Profile'}
         </button>
       </form>
     </div>
