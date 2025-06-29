@@ -17,6 +17,7 @@ const Login = () => {
   };
 
   const handleLogin = async (captchaToken) => {
+    // ✅ Guard against blank form values or invalid CAPTCHA
     if (!form.email || !form.password) {
       toast.error('Please enter your email and password.');
       return;
@@ -94,12 +95,13 @@ const Login = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            // ✅ Don’t allow invisible CAPTCHA to trigger unless fields are filled
             if (!form.email || !form.password) {
               toast.error('Email and password are required.');
               return;
             }
             if (turnstileRef.current) {
-              turnstileRef.current.execute(); // trigger invisible CAPTCHA
+              turnstileRef.current.execute();
             }
           }}
           className="space-y-4"
