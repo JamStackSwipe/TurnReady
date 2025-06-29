@@ -38,11 +38,13 @@ const TechSignup = () => {
   };
 
   const uploadFile = async (label, file) => {
-    const path = `tech-docs/${user.id}/${label}-${Date.now()}.${file.name.split('.').pop()}`;
+    const extension = file.name.split('.').pop();
+    const path = `${user.id}/${label}-${Date.now()}.${extension}`;
+
     const { error } = await supabase.storage.from('tech-docs').upload(path, file);
     if (error) throw new Error(`Failed to upload ${label}`);
-    const { data } = supabase.storage.from('tech-docs').getPublicUrl(path);
-    return data.publicUrl;
+
+    return path; // return path only, not public URL
   };
 
   const handleSubmit = async (e) => {
@@ -62,7 +64,7 @@ const TechSignup = () => {
       const uploads = {};
       for (const key in files) {
         if (files[key]) {
-          uploads[key] = await uploadFile(key, files[key]);
+          uploads[key] = await uploadFile(key, files[key]); // store only path
         }
       }
 
@@ -99,7 +101,6 @@ const TechSignup = () => {
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-bold text-center mb-6">🛠️ Technician Signup</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Personal Info */}
         <input type="text" name="full_name" placeholder="Full Name" className="w-full p-2 border rounded" onChange={handleChange} required />
         <input type="tel" name="phone" placeholder="Phone Number" className="w-full p-2 border rounded" onChange={handleChange} required />
         <input type="text" name="address_street" placeholder="Street or PO Box" className="w-full p-2 border rounded" onChange={handleChange} required />
@@ -107,7 +108,6 @@ const TechSignup = () => {
         <input type="text" name="address_state" placeholder="State (e.g., TX)" className="w-full p-2 border rounded" onChange={handleChange} required />
         <input type="text" name="address_zip" placeholder="ZIP Code" className="w-full p-2 border rounded" onChange={handleChange} required />
 
-        {/* File Uploads */}
         <label>📸 Driver's License (Required)
           <input type="file" name="drivers_license" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
         </label>
@@ -124,7 +124,6 @@ const TechSignup = () => {
           <input type="file" name="tools_photo" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
         </label>
 
-        {/* Optional Uploads */}
         <label>📎 General Liability Insurance (Optional)
           <input type="file" name="liability_insurance" accept="image/*" onChange={handleFileChange} className="w-full mt-1" />
         </label>
