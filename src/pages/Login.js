@@ -17,7 +17,6 @@ const Login = () => {
   };
 
   const handleLogin = async (captchaToken) => {
-    // ✅ Guard against blank form values or invalid CAPTCHA
     if (!form.email || !form.password) {
       toast.error('Please enter your email and password.');
       return;
@@ -31,13 +30,13 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
         options: { captchaToken },
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
       toast.success('✅ Login successful! Redirecting...');
 
@@ -53,31 +52,29 @@ const Login = () => {
 
       const userId = user.id;
 
-      const { data: techProfile } = await supabase
-        .from('tech_profiles')
-        .select('id')
-        .eq('user_id', userId)
+      // ✅ Check the profiles table for assigned role
+      const { data: profile, error: roleError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
         .single();
 
-      if (techProfile) {
-        localStorage.setItem('turnready_role', 'tech');
-        navigate('/tech-dashboard');
+      if (roleError || !profile?.role) {
+        toast.error('No role assigned. Please select a role.');
+        navigate('/choose-role');
         return;
       }
 
-      const { data: clientProfile } = await supabase
-        .from('client_profiles')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
+      const role = profile.role;
+      localStorage.setItem('turnready_role', role);
 
-      if (clientProfile) {
-        localStorage.setItem('turnready_role', 'client');
-        navigate('/client-dashboard');
-        return;
+      if (role === 'tech') {
+        navigate('/tech-setup');
+      } else if (role === 'client') {
+        navigate('/client-signup'); // or /client-dashboard if setup complete
+      } else {
+        navigate('/choose-role');
       }
-
-      navigate('/choose-role');
     } catch (err) {
       console.error('[Login Error]', err);
       toast.error(`Login failed: ${err.message}`);
@@ -95,7 +92,6 @@ const Login = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            // ✅ Don’t allow invisible CAPTCHA to trigger unless fields are filled
             if (!form.email || !form.password) {
               toast.error('Email and password are required.');
               return;
