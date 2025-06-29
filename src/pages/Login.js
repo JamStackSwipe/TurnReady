@@ -30,6 +30,7 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // 🔐 Sign in user
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
@@ -40,6 +41,7 @@ const Login = () => {
 
       toast.success('✅ Login successful! Redirecting...');
 
+      // 🎯 Get user and profile role
       const {
         data: { user },
         error: userError,
@@ -52,7 +54,6 @@ const Login = () => {
 
       const userId = user.id;
 
-      // ✅ Check the profiles table for assigned role
       const { data: profile, error: roleError } = await supabase
         .from('profiles')
         .select('role')
@@ -60,20 +61,21 @@ const Login = () => {
         .single();
 
       if (roleError || !profile?.role) {
-        toast.error('No role assigned. Please select a role.');
-        navigate('/choose-role');
+        toast.error('No role assigned. Please select your role.');
+        navigate('/profile');
         return;
       }
 
       const role = profile.role;
       localStorage.setItem('turnready_role', role);
 
+      // 🚀 Redirect by role
       if (role === 'tech') {
         navigate('/tech-setup');
       } else if (role === 'client') {
-        navigate('/client-signup'); // or /client-dashboard if setup complete
+        navigate('/client-dashboard');
       } else {
-        navigate('/choose-role');
+        navigate('/profile'); // fallback
       }
     } catch (err) {
       console.error('[Login Error]', err);
@@ -138,7 +140,7 @@ const Login = () => {
 
         <p className="text-sm mt-4 text-center">
           Forgot your password?{' '}
-          <a href="/resetpassword" className="text-blue-600 hover:underline">
+          <a href="/reset-password" className="text-blue-600 hover:underline">
             Reset it here
           </a>
         </p>
