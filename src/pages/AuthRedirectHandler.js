@@ -1,22 +1,26 @@
-// src/pages/AuthRedirectHandler.js
-import React, { useEffect, useState } from 'react';
+// src/pages/Confirm.js
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 
-const AuthRedirectHandler = () => {
+const Confirm = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState('Checking...');
 
   useEffect(() => {
-    const handleRedirect = async () => {
-      const { data, error } = await supabase.auth.getUser();
+    const confirmAndRedirect = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-      if (error || !data.user) {
-        setStatus('Unable to confirm. Please log in manually.');
-        toast.error('❌ Email confirmation failed.');
+      if (error || !user) {
+        toast.error('❌ Confirmation failed or session expired.');
+        navigate('/login');
         return;
       }
+
+      toast.success('✅ Email confirmed!');
 
       const role = localStorage.getItem('turnready_role');
 
@@ -25,20 +29,21 @@ const AuthRedirectHandler = () => {
       } else if (role === 'client') {
         navigate('/client-signup');
       } else {
-        toast.error('❌ Role not found. Please log in.');
-        navigate('/login');
+        navigate('/choose-role');
       }
     };
 
-    handleRedirect();
+    confirmAndRedirect();
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-center p-6">
-      <p className="text-xl font-semibold mb-2">🔄 {status}</p>
-      <p className="text-gray-500">Please wait while we complete your confirmation...</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-blue-700">⏳ Finalizing your signup...</h2>
+        <p className="text-sm text-gray-600 mt-2">Just a moment...</p>
+      </div>
     </div>
   );
 };
 
-export default AuthRedirectHandler;
+export default Confirm;
