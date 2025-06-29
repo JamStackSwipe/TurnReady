@@ -21,7 +21,7 @@ import Settings from './pages/Settings';
 import PageNotFound from './pages/PageNotFound';
 import RequestRegion from './pages/RequestRegion';
 import ResetPassword from './pages/ResetPassword';
-import AuthRedirectHandler from './pages/AuthRedirectHandler';
+import Confirm from './pages/Confirm'; // ✅ Updated
 
 import SubmitJob from './pages/SubmitJob';
 import JobBoard from './pages/JobBoard';
@@ -35,7 +35,6 @@ import MyRequests from './pages/MyRequests';
 
 import TechDashboard from './pages/TechDashboard';
 import MyJobs from './pages/MyJobs';
-import TechProfileSetup from './pages/TechProfileSetup';
 import CompleteJob from './pages/CompleteJob';
 import TechNotes from './pages/TechNotes';
 
@@ -102,7 +101,7 @@ function AppWrapper() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/request-region" element={<RequestRegion />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/confirm" element={<AuthRedirectHandler />} />
+        <Route path="/confirm" element={<Confirm />} /> {/* ✅ fixed */}
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
@@ -150,11 +149,6 @@ function AppWrapper() {
         <Route path="/my-jobs" element={
           <RequireRole allowedRoles={['tech', 'admin']}>
             <MyJobs />
-          </RequireRole>
-        } />
-        <Route path="/tech-setup" element={
-          <RequireRole allowedRoles={['tech', 'admin']}>
-            <TechProfileSetup />
           </RequireRole>
         } />
         <Route path="/complete-job" element={<Navigate to="/my-jobs" />} />
