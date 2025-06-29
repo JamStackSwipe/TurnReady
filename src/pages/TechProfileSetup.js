@@ -2,182 +2,220 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const TechProfileSetup = () => {
   const { user } = useUser();
-  const navigate = useNavigate();
 
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     shirt_size: '',
-    shipping_address: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip: '',
     agree_terms: false,
-    region: '',
   });
 
-  const [licenseFile, setLicenseFile] = useState(null);
-  const [insuranceFile, setInsuranceFile] = useState(null);
+  const [uploads, setUploads] = useState({
+    drivers_license: null,
+    auto_insurance: null,
+    liability_insurance: null,
+    epa_license: null,
+    other_certifications: null,
+    tool_photo: null,
+    vehicle_photo: null,
+  });
+
   const [uploading, setUploading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    setUploads((prev) => ({
+      ...prev,
+      [name]: files[0],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
 
-    if (!form.agree_terms || !licenseFile || !insuranceFile) {
-      toast.error('Please complete all fields and agree to the terms.');
-      return;
-    }
+    setUploading(true);
 
     try {
-      setUploading(true);
+      const fileUrls = {};
 
-      const { data: licenseUpload, error: licenseError } = await supabase.storage
-        .from('tech-docs')
-        .upload(`licenses/${user.id}.jpg`, licenseFile, { upsert: true });
+      for (const key in uploads) {
+        const file = uploads[key];
+        if (file) {
+          const path = `tech-setup/${user.id}/${key}-${Date.now()}-${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('tech-docs')
+            .upload(path, file);
+          if (uploadError) throw uploadError;
 
-      if (licenseError) throw licenseError;
-      const licensePath = licenseUpload?.path;
+          const { publicUrl } = supabase.storage
+            .from('tech-docs')
+            .getPublicUrl(path).data;
 
-      const { data: insuranceUpload, error: insuranceError } = await supabase.storage
-        .from('tech-docs')
-        .upload(`insurance/${user.id}.jpg`, insuranceFile, { upsert: true });
+          fileUrls[key] = publicUrl;
+        }
+      }
 
-      if (insuranceError) throw insuranceError;
-      const insurancePath = insuranceUpload?.path;
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          shirt_size: formData.shirt_size,
+          street_address: formData.street_address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          agree_terms: formData.agree_terms,
+          drivers_license_url: fileUrls.drivers_license,
+          auto_insurance_url: fileUrls.auto_insurance,
+          liability_insurance_url: fileUrls.liability_insurance,
+          epa_license_url: fileUrls.epa_license,
+          other_certifications_url: fileUrls.other_certifications,
+          tool_photo_url: fileUrls.tool_photo,
+          vehicle_photo_url: fileUrls.vehicle_photo,
+        })
+        .eq('id', user.id);
 
-      const { error: insertError } = await supabase.from('tech_profiles').upsert({
-        user_id: user.id,
-        shirt_size: form.shirt_size,
-        shipping_address: form.shipping_address,
-        license_path: licensePath,
-        insurance_path: insurancePath,
-        region: form.region,
-        status: 'pending',
-      });
+      if (error) throw error;
 
-      if (insertError) throw insertError;
-
-      toast.success('Profile submitted successfully!');
-      navigate('/tech-dashboard');
-
+      toast.success('✅ Profile setup completed!');
     } catch (err) {
       console.error(err);
-      toast.error('Upload or database error.');
+      toast.error('❌ Error submitting profile setup.');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h1 className="text-xl font-bold">👷 Tech Profile Setup</h1>
-
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4 text-blue-700">🔧 Tech Profile Setup</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block">
-          Service Region:
-          <select
-            name="region"
-            value={form.region}
-            onChange={handleChange}
-            required
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Select Region</option>
-            <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
-            <option value="Hot Springs AR">Hot Springs, AR</option>
-            <option value="Ozark Mtns / Branson MO">Ozark Mountains / Branson, MO</option>
-            <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
-            <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
-          </select>
-        </label>
 
-        <label className="block">
-          Shirt Size:
+        <div>
+          <label className="font-medium">Shirt Size</label>
           <select
             name="shirt_size"
-            value={form.shirt_size}
+            value={formData.shirt_size}
             onChange={handleChange}
-            className="w-full p-2 border rounded"
+            className="w-full mt-1 p-2 border rounded"
             required
           >
-            <option value="">Select size</option>
-            <option value="S">Small</option>
-            <option value="M">Medium</option>
-            <option value="L">Large</option>
+            <option value="">Select...</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
             <option value="XL">XL</option>
             <option value="XXL">XXL</option>
           </select>
-        </label>
+        </div>
 
-        <label className="block">
-          Shipping Address:
-          <textarea
-            name="shipping_address"
-            value={form.shipping_address}
+        <div>
+          <label className="font-medium">Street Address or PO Box</label>
+          <input
+            name="street_address"
+            value={formData.street_address}
             onChange={handleChange}
-            className="w-full p-2 border rounded"
+            type="text"
+            className="w-full mt-1 p-2 border rounded"
             required
           />
-        </label>
+        </div>
 
-        <label className="block">
-          Upload Driver’s License:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setLicenseFile(e.target.files[0])}
-            required
-          />
-        </label>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="font-medium">City</label>
+            <input
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              type="text"
+              className="w-full mt-1 p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label className="font-medium">State</label>
+            <input
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              type="text"
+              className="w-full mt-1 p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label className="font-medium">ZIP Code</label>
+            <input
+              name="zip"
+              value={formData.zip}
+              onChange={handleChange}
+              type="text"
+              className="w-full mt-1 p-2 border rounded"
+              required
+            />
+          </div>
+        </div>
 
-        <label className="block">
-          Upload Proof of Insurance:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setInsuranceFile(e.target.files[0])}
-            required
-          />
-        </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FileInput label="Driver's License (state valid)" name="drivers_license" onChange={handleFileChange} />
+          <FileInput label="Automobile Insurance" name="auto_insurance" onChange={handleFileChange} />
+          <FileInput label="General Liability Insurance" name="liability_insurance" onChange={handleFileChange} />
+          <FileInput label="EPA License" name="epa_license" onChange={handleFileChange} />
+          <FileInput label="Other Certifications (NATE, Boiler, etc.)" name="other_certifications" onChange={handleFileChange} />
+          <FileInput label="Photo of Tools" name="tool_photo" onChange={handleFileChange} />
+          <FileInput label="Photo of Vehicle" name="vehicle_photo" onChange={handleFileChange} />
+        </div>
 
-        <label className="block">
+        <label className="flex items-center space-x-2 mt-4">
           <input
             type="checkbox"
             name="agree_terms"
-            checked={form.agree_terms}
+            checked={formData.agree_terms}
             onChange={handleChange}
-            className="mr-2"
             required
           />
-          I agree to the background check and onboarding terms.
+          <span>I agree to the Terms of Service and confirm the above is accurate.</span>
         </label>
 
         <button
           type="submit"
-          className="bg-blue-500 text-white p-2 rounded w-full disabled:opacity-50"
           disabled={uploading}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
         >
-          {uploading ? 'Submitting...' : 'Submit Profile'}
-        </button>
-
-        <button
-          type="button"
-          className="bg-gray-400 text-white p-2 rounded w-full mt-2"
-          disabled
-        >
-          Pay $99 Onboarding Fee (Coming Soon)
+          {uploading ? 'Submitting...' : '✅ Submit Profile'}
         </button>
       </form>
     </div>
   );
 };
+
+const FileInput = ({ label, name, onChange }) => (
+  <label className="block">
+    <span className="font-medium">{label}</span>
+    <input
+      type="file"
+      name={name}
+      accept="image/*,.pdf"
+      onChange={onChange}
+      className="w-full mt-1"
+      required
+    />
+  </label>
+);
 
 export default TechProfileSetup;
