@@ -1,3 +1,4 @@
+// src/components/AuthProvider.js
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
@@ -8,59 +9,65 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Reusable function to load profile by user ID
-  const loadProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      if (error) {
-        console.warn('Profile fetch error:', error.message);
-        setProfile(null);
-      } else {
-        setProfile(data);
-      }
-    } catch (err) {
-      console.error('Unexpected profile load error:', err);
-      setProfile(null);
-    }
-  };
-
   useEffect(() => {
-    const init = async () => {
+    const fetchSessionAndProfile = async () => {
       try {
-        const { data: userData, error } = await supabase.auth.getUser();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         const currentUser = userData?.user;
+
+        if (userError) {
+          console.error('User fetch error:', userError.message);
+        }
+
         if (currentUser) {
           setUser(currentUser);
-          await loadProfile(currentUser.id);
+
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (profileError) {
+            console.warn('Profile fetch error:', profileError.message);
+          }
+
+          if (profileData) {
+            setProfile(profileData);
+          }
         }
       } catch (err) {
-        console.error('Initial session error:', err);
+        console.error('AuthProvider fatal error:', err.message);
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ Make sure this always runs
       }
     };
 
-    init();
+    fetchSessionAndProfile();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const sessionUser = session?.user || null;
-        setUser(sessionUser);
-        setProfile(null);
-        if (sessionUser) {
-          await loadProfile(sessionUser.id);
-        }
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const newUser = session?.user || null;
+      setUser(newUser);
+      setProfile(null);
+      if (newUser) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', newUser.id)
+          .single()
+          .then(({ data, error }) => {
+            if (error) console.error('Profile reload error:', error.message);
+            setProfile(data);
+          });
       }
-    );
+    });
 
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
+    return () => listener?.subscription?.unsubscribe();
   }, []);
+
+  if (loading) {
+    return <div className="text-center mt-20 text-gray-600 text-lg">🔄 Loading profile...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ user, profile, loading }}>
