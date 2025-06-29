@@ -35,13 +35,13 @@ const Profile = () => {
 
       setProfile(data);
 
-      // 🚀 Auto-redirect if role is already set
+      // 🔁 Auto-redirect based on existing role
       if (data.role === 'tech') {
         navigate('/tech-dashboard');
       } else if (data.role === 'client') {
         navigate('/client-dashboard');
       } else {
-        setLoading(false); // Role not set yet, show picker
+        setLoading(false); // No role yet → show chooser
       }
     }
 
@@ -50,6 +50,11 @@ const Profile = () => {
 
   const assignRole = async (role) => {
     if (!profile) return;
+
+    if (profile.role) {
+      toast.error('Role already assigned and cannot be changed.');
+      return;
+    }
 
     const { error } = await supabase
       .from('profiles')
@@ -76,21 +81,27 @@ const Profile = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white shadow-lg rounded-xl p-8 max-w-md w-full text-center">
         <h1 className="text-xl font-semibold mb-4">👤 Welcome to TurnReady</h1>
-        <p className="mb-6">Please select your role to complete setup:</p>
-        <div className="flex flex-col gap-4">
-          <button
-            onClick={() => assignRole('tech')}
-            className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-          >
-            I am a Technician
-          </button>
-          <button
-            onClick={() => assignRole('client')}
-            className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
-          >
-            I am a Property Owner / Client
-          </button>
-        </div>
+        {profile.role ? (
+          <p className="text-gray-600">Your role is set to <strong>{profile.role}</strong>. You’ll be redirected automatically.</p>
+        ) : (
+          <>
+            <p className="mb-6">Please select your role to complete setup:</p>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => assignRole('tech')}
+                className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+              >
+                I am a Technician
+              </button>
+              <button
+                onClick={() => assignRole('client')}
+                className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
+              >
+                I am a Property Owner / Client
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
