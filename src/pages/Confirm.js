@@ -25,7 +25,7 @@ const Confirm = () => {
       const role = localStorage.getItem('turnready_role');
 
       if (role === 'tech') {
-        navigate('/tech-setup');
+        navigate('/techsignup');
       } else if (role === 'client') {
         navigate('/client-signup');
       } else {
