@@ -71,7 +71,7 @@ const Login = () => {
 
       // 🚀 Redirect by role
       if (role === 'tech') {
-        navigate('/tech-setup');
+        navigate('/techsetup');
       } else if (role === 'client') {
         navigate('/client-dashboard');
       } else {
