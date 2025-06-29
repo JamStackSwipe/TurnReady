@@ -1,111 +1,53 @@
-// src/pages/Profile.js
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useUser } from '../components/AuthProvider';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
-import toast from 'react-hot-toast';
 
 const Profile = () => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile } = useUser();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function loadProfile() {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        toast.error('Not logged in.');
-        navigate('/login');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error || !data) {
-        toast.error('Profile not found.');
-        setLoading(false);
-        return;
-      }
-
-      setProfile(data);
-
-      // 🔁 Auto-redirect based on existing role
-      if (data.role === 'tech') {
-        navigate('/tech-dashboard');
-      } else if (data.role === 'client') {
-        navigate('/client-dashboard');
-      } else {
-        setLoading(false); // No role yet → show chooser
-      }
-    }
-
-    loadProfile();
-  }, [navigate]);
-
-  const assignRole = async (role) => {
-    if (!profile) return;
-
-    if (profile.role) {
-      toast.error('Role already assigned and cannot be changed.');
-      return;
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role })
-      .eq('id', profile.id);
-
-    if (error) {
-      toast.error('Error setting role.');
-      return;
-    }
-
-    toast.success(`Role set to ${role}`);
-
-    if (role === 'tech') {
-      navigate('/tech-signup'); // ✅ fixed route
-    } else {
-      navigate('/client-signup');
-    }
-  };
-
-  if (loading) return <p style={{ padding: '2rem' }}>Loading profile...</p>;
+  if (!user || !profile) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        🔐 Please log in to view your profile.
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white shadow-lg rounded-xl p-8 max-w-md w-full text-center">
-        <h1 className="text-xl font-semibold mb-4">👤 Welcome to TurnReady</h1>
-        {profile.role ? (
-          <p className="text-gray-600">
-            Your role is set to <strong>{profile.role}</strong>. You’ll be redirected automatically.
-          </p>
-        ) : (
-          <>
-            <p className="mb-6">Please select your role to complete setup:</p>
-            <div className="flex flex-col gap-4">
-              <button
-                onClick={() => assignRole('tech')}
-                className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-              >
-                I am a Technician
-              </button>
-              <button
-                onClick={() => assignRole('client')}
-                className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
-              >
-                I am a Property Owner / Client
-              </button>
-            </div>
-          </>
-        )}
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">👤 My Profile</h1>
+
+      <div className="space-y-4 bg-white p-4 rounded shadow">
+        <div><strong>Full Name:</strong> {profile.full_name || 'Not provided'}</div>
+        <div><strong>Email:</strong> {user.email}</div>
+        <div><strong>Phone:</strong> {profile.phone || 'Not provided'}</div>
+        <div><strong>Role:</strong> {profile.role || 'Unspecified'}</div>
+        <div><strong>Address:</strong> {profile.address || 'Not provided'}</div>
+        <div><strong>Onboarding Complete:</strong> {profile.onboarding_complete ? '✅ Yes' : '❌ No'}</div>
       </div>
+
+      {profile.role === 'tech' && (
+        <div className="mt-6">
+          <button
+            onClick={() => navigate('/tech-dashboard')}
+            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+          >
+            🚚 Go to Tech Dashboard
+          </button>
+        </div>
+      )}
+
+      {profile.role === 'client' && (
+        <div className="mt-6">
+          <button
+            onClick={() => navigate('/client-dashboard')}
+            className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+          >
+            🏡 Go to Client Dashboard
+          </button>
+        </div>
+      )}
     </div>
   );
 };
