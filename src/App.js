@@ -94,7 +94,7 @@ function AppWrapper() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/tech-signup" element={<TechSignup />} />
+        <Route path="/techsignup" element={<TechSignup />} />
         <Route path="/client-signup" element={<ClientSignup />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
