@@ -1,14 +1,12 @@
-// src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { supabase } from './supabaseClient';
 
-// Shared Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import RequireRole from './components/RequireRole';
 
-// Public Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -23,27 +21,22 @@ import RequestRegion from './pages/RequestRegion';
 import ResetPassword from './pages/ResetPassword';
 import AuthRedirectHandler from './pages/AuthRedirectHandler';
 
-
-// Job Pages
 import SubmitJob from './pages/SubmitJob';
 import JobBoard from './pages/JobBoard';
 import JobDetails from './pages/JobDetails';
 import JobUpdate from './pages/JobUpdate';
 import PartsRequest from './pages/PartsRequest';
 
-// Client Pages
 import ClientDashboard from './pages/ClientDashboard';
 import MyProperties from './pages/MyProperties';
 import MyRequests from './pages/MyRequests';
 
-// Tech Pages
 import TechDashboard from './pages/TechDashboard';
 import MyJobs from './pages/MyJobs';
 import TechProfileSetup from './pages/TechProfileSetup';
 import CompleteJob from './pages/CompleteJob';
 import TechNotes from './pages/TechNotes';
 
-// Admin Pages
 import AdminDashboard from './pages/AdminDashboard';
 import AdminJobs from './pages/AdminJobs';
 import AdminReviews from './pages/AdminReviews';
@@ -54,7 +47,6 @@ import AdminPartInventory from './pages/AdminPartInventory';
 import AdminPartsOrders from './pages/AdminPartsOrders';
 import AdminRegionRequests from './pages/AdminRegionRequests';
 
-// System Utility Pages
 import PaymentHistory from './pages/PaymentHistory';
 import DisputeCenter from './pages/DisputeCenter';
 import MaintenanceTips from './pages/MaintenanceTips';
@@ -62,19 +54,46 @@ import SystemLogViewer from './pages/SystemLogViewer';
 import NotificationsInbox from './pages/NotificationsInbox';
 import ReferralSystem from './pages/ReferralSystem';
 
-function App() {
+function AppWrapper() {
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      setSession(user);
+
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!error) setProfile(data);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, [location.pathname]);
+
+  if (loading) return <div className="p-6">Loading...</div>;
+
   return (
-    <Router>
+    <>
       <Navbar />
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
-
-        {/* Public + Core */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} /> {/* Temp: redirect to client signup */}
-        <Route path="/tech-signup" element={<TechSignup />} /> {/* 👈 Top-level route */}
-        <Route path="/client-signup" element={<ClientSignup />} /> {/* 👈 Top-level route */}
+        <Route path="/register" element={<Register />} />
+        <Route path="/tech-signup" element={<TechSignup />} />
+        <Route path="/client-signup" element={<ClientSignup />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/terms" element={<TermsOfService />} />
@@ -82,7 +101,6 @@ function App() {
         <Route path="/request-region" element={<RequestRegion />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm" element={<AuthRedirectHandler />} />
-
 
         {/* Job Pages */}
         <Route path="/submit-job" element={<SubmitJob />} />
@@ -191,11 +209,18 @@ function App() {
           </RequireRole>
         } />
 
-        {/* Catch All */}
+        {/* Catch all */}
         <Route path="*" element={<PageNotFound />} />
-
       </Routes>
       <Footer />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppWrapper />
     </Router>
   );
 }
