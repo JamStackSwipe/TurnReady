@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
-            .single();
+            .maybeSingle(); // ✅ safer than .single()
 
           if (profileError) {
             console.warn('Profile fetch error:', profileError.message);
@@ -34,12 +34,14 @@ export const AuthProvider = ({ children }) => {
 
           if (profileData) {
             setProfile(profileData);
+          } else {
+            console.warn('No profile found for user:', currentUser.id);
           }
         }
       } catch (err) {
         console.error('AuthProvider fatal error:', err.message);
       } finally {
-        setLoading(false); // ✅ Make sure this always runs
+        setLoading(false); // ✅ Always clear loading
       }
     };
 
@@ -54,10 +56,10 @@ export const AuthProvider = ({ children }) => {
           .from('profiles')
           .select('*')
           .eq('id', newUser.id)
-          .single()
+          .maybeSingle() // ✅ same here
           .then(({ data, error }) => {
             if (error) console.error('Profile reload error:', error.message);
-            setProfile(data);
+            if (data) setProfile(data);
           });
       }
     });
