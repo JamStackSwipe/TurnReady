@@ -1,260 +1,145 @@
+// src/pages/TechSignup.js
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 
 const TechSignup = () => {
+  const { user } = useUser();
   const [form, setForm] = useState({
     full_name: '',
-    email: '',
-    password: '',
     phone: '',
-    region: '',
-    agree_terms: false,
+    address_street: '',
+    address_city: '',
+    address_state: '',
+    address_zip: '',
   });
 
-  const [vehicleInsuranceFile, setVehicleInsuranceFile] = useState(null);
-  const [liabilityInsuranceFile, setLiabilityInsuranceFile] = useState(null);
-  const [driversLicenseFile, setDriversLicenseFile] = useState(null);
-  const [epaLicenseFile, setEpaLicenseFile] = useState(null);
-  const [otherCertsFile, setOtherCertsFile] = useState(null);
+  const [files, setFiles] = useState({
+    drivers_license: null,
+    auto_insurance: null,
+    epa_license: null,
+    truck_photo: null,
+    tools_photo: null,
+    liability_insurance: null,
+    other_certifications: null,
+  });
 
   const [uploading, setUploading] = useState(false);
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files: selected } = e.target;
+    setFiles(prev => ({ ...prev, [name]: selected[0] }));
+  };
+
+  const uploadFile = async (label, file) => {
+    const path = `tech-docs/${user.id}/${label}-${Date.now()}.${file.name.split('.').pop()}`;
+    const { error } = await supabase.storage.from('tech-docs').upload(path, file);
+    if (error) throw new Error(`Failed to upload ${label}`);
+    const { data } = supabase.storage.from('tech-docs').getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
 
-    if (!form.agree_terms) {
-      toast.error('❌ You must agree to the terms.');
-      return;
-    }
-
-    if (!vehicleInsuranceFile || !liabilityInsuranceFile || !driversLicenseFile) {
-      toast.error('❌ Upload vehicle, liability, and driver’s license.');
-      return;
+    const required = ['drivers_license', 'auto_insurance', 'epa_license', 'truck_photo', 'tools_photo'];
+    for (const key of required) {
+      if (!files[key]) {
+        toast.error(`❌ Missing required file: ${key.replace('_', ' ')}`);
+        return;
+      }
     }
 
     setUploading(true);
-
     try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-      });
-
-      if (signUpError) throw signUpError;
-      const user = authData.user;
-      if (!user) throw new Error('User not returned after signup.');
-
-      const timestamp = Date.now();
-      const uploads = [
-        {
-          file: vehicleInsuranceFile,
-          path: `tech_docs/${timestamp}_vehicle_${vehicleInsuranceFile.name}`,
-        },
-        {
-          file: liabilityInsuranceFile,
-          path: `tech_docs/${timestamp}_liability_${liabilityInsuranceFile.name}`,
-        },
-        {
-          file: driversLicenseFile,
-          path: `tech_docs/${timestamp}_drivers_${driversLicenseFile.name}`,
-        },
-        ...(epaLicenseFile
-          ? [{ file: epaLicenseFile, path: `tech_docs/${timestamp}_epa_${epaLicenseFile.name}` }]
-          : []),
-        ...(otherCertsFile
-          ? [{ file: otherCertsFile, path: `tech_docs/${timestamp}_other_${otherCertsFile.name}` }]
-          : []),
-      ];
-
-      for (const { file, path } of uploads) {
-        const { error } = await supabase.storage.from('uploads').upload(path, file, {
-          upsert: true,
-        });
-        if (error) throw error;
+      const uploads = {};
+      for (const key in files) {
+        if (files[key]) {
+          uploads[key] = await uploadFile(key, files[key]);
+        }
       }
 
-      const { error: profileError } = await supabase.from('profiles').insert([
-        {
-          id: user.id,
+      const { error } = await supabase
+        .from('profiles')
+        .update({
           full_name: form.full_name,
-          email: form.email,
           phone: form.phone,
-          region: form.region,
+          address: `${form.address_street}, ${form.address_city}, ${form.address_state} ${form.address_zip}`,
+          drivers_license_url: uploads.drivers_license,
+          auto_insurance_url: uploads.auto_insurance,
+          epa_license_url: uploads.epa_license,
+          truck_photo_url: uploads.truck_photo,
+          tools_photo_url: uploads.tools_photo,
+          liability_insurance_url: uploads.liability_insurance || null,
+          other_certifications_url: uploads.other_certifications || null,
           role: 'tech',
-          vehicle_insurance_url: uploads[0].path,
-          liability_insurance_url: uploads[1].path,
-          license_url: uploads[2].path,
-          epa_license_url: epaLicenseFile ? uploads[3]?.path : null,
-          other_certs_url: otherCertsFile
-            ? uploads[epaLicenseFile ? 4 : 3]?.path
-            : null,
-        },
-      ]);
+          onboarding_complete: true,
+        })
+        .eq('id', user.id);
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
-      toast.success('✅ Signup successful! Check your email to confirm your account.');
-      navigate('/login');
+      toast.success('✅ Tech profile submitted successfully!');
     } catch (err) {
       console.error(err);
-      toast.error(`Signup failed: ${err.message}`);
+      toast.error('❌ Error submitting tech profile');
+    } finally {
+      setUploading(false);
     }
-
-    setUploading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6 text-blue-700">🛠️ Technician Signup</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-bold text-center mb-6">🛠️ Technician Signup</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Personal Info */}
+        <input type="text" name="full_name" placeholder="Full Name" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="tel" name="phone" placeholder="Phone Number" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="text" name="address_street" placeholder="Street or PO Box" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="text" name="address_city" placeholder="City" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="text" name="address_state" placeholder="State (e.g., TX)" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="text" name="address_zip" placeholder="ZIP Code" className="w-full p-2 border rounded" onChange={handleChange} required />
 
-          <input
-            type="text"
-            name="full_name"
-            placeholder="Full Name"
-            value={form.full_name}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
+        {/* File Uploads */}
+        <label>📸 Driver's License (Required)
+          <input type="file" name="drivers_license" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
+        </label>
+        <label>📸 Auto Insurance (Required)
+          <input type="file" name="auto_insurance" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
+        </label>
+        <label>📸 EPA License (Required)
+          <input type="file" name="epa_license" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
+        </label>
+        <label>📸 Truck Photo (Required)
+          <input type="file" name="truck_photo" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
+        </label>
+        <label>📸 Tools Photo (Required)
+          <input type="file" name="tools_photo" accept="image/*" onChange={handleFileChange} required className="w-full mt-1" />
+        </label>
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
+        {/* Optional Uploads */}
+        <label>📎 General Liability Insurance (Optional)
+          <input type="file" name="liability_insurance" accept="image/*" onChange={handleFileChange} className="w-full mt-1" />
+        </label>
+        <label>📎 Other Certifications (Optional)
+          <input type="file" name="other_certifications" accept="image/*" onChange={handleFileChange} className="w-full mt-1" />
+        </label>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Create a Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Phone Number"
-            value={form.phone}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-
-          <select
-            name="region"
-            value={form.region}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          >
-            <option value="">Select Region</option>
-            <option value="Hochatown/Broken Bow OK">Hochatown / Broken Bow, OK</option>
-            <option value="Hot Springs AR">Hot Springs, AR</option>
-            <option value="Grand Lake OK">Grand Lake O' the Cherokees, OK</option>
-            <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
-            <option value="Other">Other (Request a Region)</option>
-          </select>
-
-          {form.region === 'Other' && (
-            <input
-              type="text"
-              name="custom_region"
-              placeholder="Enter your city or region"
-              value={form.custom_region || ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, custom_region: e.target.value }))}
-              className="w-full border rounded-lg p-3"
-            />
-          )}
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload Vehicle Insurance</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setVehicleInsuranceFile(e.target.files[0])}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload General Liability Insurance</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setLiabilityInsuranceFile(e.target.files[0])}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload Driver’s License (Required)</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setDriversLicenseFile(e.target.files[0])}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload EPA License (Optional)</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setEpaLicenseFile(e.target.files[0])}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Upload Other Certifications (Optional)</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setOtherCertsFile(e.target.files[0])}
-            />
-          </div>
-
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="agree_terms"
-              checked={form.agree_terms}
-              onChange={handleChange}
-              className="h-4 w-4"
-              required
-            />
-            <span className="text-sm">I agree to the TurnReady terms and policies.</span>
-          </label>
-
-          <button
-            type="submit"
-            disabled={uploading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            {uploading ? 'Submitting...' : '🚀 Sign Up as Tech'}
-          </button>
-        </form>
-      </div>
+        <button
+          type="submit"
+          disabled={uploading}
+          className="w-full bg-blue-600 text-white py-3 rounded font-semibold hover:bg-blue-700 transition"
+        >
+          {uploading ? 'Uploading...' : '🚀 Submit Profile'}
+        </button>
+      </form>
     </div>
   );
 };
