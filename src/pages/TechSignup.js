@@ -162,9 +162,9 @@ const TechSignup = () => {
             ['epa_license_url', 'EPA License'],
             ['vehicle_insurance_url', 'Vehicle Insurance Policy'],
             ['liability_insurance_url', 'Liability Insurance (optional)'],
-            ['truck_photo_url', 'Photo of Truck'],
+            ['truck_photo_url', 'Photo of Truck/Van'],
             ['tool_photo_url', 'Photo of Tools'],
-            ['other_certifications_url', 'Other Certifications (optional)'],
+            ['other_certifications_url', 'Other Certifications/Licenses (optional)'],
           ].map(([field, label]) => (
             <div key={field}>
               <label className="block font-medium">{label}</label>
