@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 const TechSignup = () => {
   const { user } = useUser();
   const [uploading, setUploading] = useState(false);
-  const [regions, setRegions] = useState([]);
+  const [regionOptions, setRegionOptions] = useState([]);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -28,15 +28,15 @@ const TechSignup = () => {
   });
 
   useEffect(() => {
-    const fetchRegions = async () => {
+    const loadRegions = async () => {
       const { data, error } = await supabase.from('regions').select('name');
       if (error) {
         console.error('Failed to load regions:', error);
       } else {
-        setRegions(data.map((r) => r.name));
+        setRegionOptions(data.map((r) => r.name));
       }
     };
-    fetchRegions();
+    loadRegions();
   }, []);
 
   const handleChange = (e) => {
@@ -122,7 +122,7 @@ const TechSignup = () => {
           className="w-full border px-4 py-2"
           required
         />
-        <label className="block font-medium">Service Region</label>
+        <label className="block font-medium mb-1">Service Region</label>
         <select
           name="region"
           value={formData.region}
@@ -131,7 +131,7 @@ const TechSignup = () => {
           className="w-full border px-4 py-2"
         >
           <option value="">Select a region</option>
-          {regions.map((region) => (
+          {regionOptions.map((region) => (
             <option key={region} value={region}>
               {region}
             </option>
