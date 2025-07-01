@@ -1,5 +1,5 @@
 // src/pages/TechSignup.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 const TechSignup = () => {
   const { user } = useUser();
   const [uploading, setUploading] = useState(false);
+  const [regions, setRegions] = useState([]);
+
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -25,6 +27,18 @@ const TechSignup = () => {
     other_certifications_url: '',
   });
 
+  useEffect(() => {
+    const fetchRegions = async () => {
+      const { data, error } = await supabase.from('regions').select('name');
+      if (error) {
+        console.error('Failed to load regions:', error);
+      } else {
+        setRegions(data.map((r) => r.name));
+      }
+    };
+    fetchRegions();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -38,8 +52,8 @@ const TechSignup = () => {
     const fileExt = file.name.split('.').pop();
     const filePath = `${user.id}/${fieldName}.${fileExt}`;
 
-    const { error, data } = await supabase.storage
-      .from('documents')
+    const { error } = await supabase.storage
+      .from('tech-docs')
       .upload(filePath, file, { upsert: true });
 
     if (error) {
@@ -48,13 +62,14 @@ const TechSignup = () => {
       return;
     }
 
-    const { publicURL } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
+    const { data: urlData } = await supabase
+      .storage
+      .from('tech-docs')
+      .createSignedUrl(filePath, 3600);
 
     setUploads((prev) => ({
       ...prev,
-      [fieldName]: publicURL,
+      [fieldName]: urlData?.signedUrl || '',
     }));
 
     setUploading(false);
@@ -68,7 +83,6 @@ const TechSignup = () => {
     const update = {
       ...formData,
       ...uploads,
-      zip: formData.zip,
       onboarding_complete: true,
       updated_at: new Date().toISOString(),
     };
@@ -108,15 +122,21 @@ const TechSignup = () => {
           className="w-full border px-4 py-2"
           required
         />
-        <input
-          type="text"
+        <label className="block font-medium">Service Region</label>
+        <select
           name="region"
-          placeholder="Service Region"
           value={formData.region}
           onChange={handleChange}
-          className="w-full border px-4 py-2"
           required
-        />
+          className="w-full border px-4 py-2"
+        >
+          <option value="">Select a region</option>
+          {regions.map((region) => (
+            <option key={region} value={region}>
+              {region}
+            </option>
+          ))}
+        </select>
         <input
           type="text"
           name="address"
