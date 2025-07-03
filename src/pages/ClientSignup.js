@@ -1,35 +1,36 @@
 // src/pages/ClientSignup.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useUser } from '../components/AuthProvider';
+import TurnstileWrapper from '../components/TurnstileWrapper';
 
 const ClientSignup = () => {
-  const { user } = useUser();
-  const navigate = useNavigate();
-
-  const [regionOptions, setRegionOptions] = useState([]);
   const [form, setForm] = useState({
     full_name: '',
     email: '',
+    password: '',
     phone: '',
     region: '',
+    custom_region: '',
     agree_terms: false,
   });
 
+  const [regions, setRegions] = useState([]);
+  const [captchaToken, setCaptchaToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const loadRegions = async () => {
+    const fetchRegions = async () => {
       const { data, error } = await supabase.from('regions').select('name');
       if (error) {
         console.error('Failed to load regions:', error);
       } else {
-        setRegionOptions(data.map((r) => r.name));
+        setRegions(data.map((r) => r.name));
       }
     };
-    loadRegions();
+    fetchRegions();
   }, []);
 
   const handleChange = (e) => {
@@ -42,33 +43,60 @@ const ClientSignup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
 
     if (!form.agree_terms) {
       toast.error('❌ You must agree to the terms.');
       return;
     }
 
+    if (!captchaToken) {
+      toast.error('❌ Bot verification failed. Please try again.');
+      return;
+    }
+
     setSubmitting(true);
 
-    const payload = {
-      user_id: user.id,
-      full_name: form.full_name,
-      email: form.email,
-      phone: form.phone,
-      region: form.region,
-      status: 'active',
-    };
+    try {
+      // Step 1: Sign up user in Supabase Auth
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          captchaToken,
+        },
+      });
 
-    const { error } = await supabase.from('client_profiles').insert([payload]);
+      if (signUpError) throw signUpError;
 
-    if (error) {
-      console.error(error);
-      toast.error('Signup failed: ' + error.message);
-    } else {
+      // Step 2: Get the current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user?.id) throw new Error('User creation failed.');
+
+      const userId = userData.user.id;
+
+      // Step 3: Insert into client_profiles
+      const { error: profileError } = await supabase.from('client_profiles').insert([
+        {
+          user_id: userId,
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          region: form.region === 'Other' ? form.custom_region : form.region,
+          status: 'active',
+        },
+      ]);
+
+      if (profileError) throw profileError;
+
       localStorage.setItem('turnready_role', 'client');
-      toast.success('✅ Signup complete!');
-      navigate('/client-dashboard');
+      toast.success('✅ Signup complete! Redirecting...');
+
+      setTimeout(() => {
+        navigate('/client-dashboard');
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Signup failed: ${err.message}`);
     }
 
     setSubmitting(false);
@@ -79,6 +107,7 @@ const ClientSignup = () => {
       <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-lg">
         <h1 className="text-2xl font-bold mb-6 text-blue-700">🏠 Client Signup</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <input
             type="text"
             name="full_name"
@@ -88,6 +117,7 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
           <input
             type="email"
             name="email"
@@ -97,6 +127,17 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
+
+          <input
+            type="password"
+            name="password"
+            placeholder="Create a Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-3"
+          />
+
           <input
             type="tel"
             name="phone"
@@ -107,7 +148,6 @@ const ClientSignup = () => {
             className="w-full border rounded-lg p-3"
           />
 
-          <label className="block font-medium">Select Your Region</label>
           <select
             name="region"
             value={form.region}
@@ -115,13 +155,23 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           >
-            <option value="">Choose a region</option>
-            {regionOptions.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
+            <option value="">Select Region</option>
+            {regions.map((r) => (
+              <option key={r} value={r}>{r}</option>
             ))}
+            <option value="Other">Other (Request a Region)</option>
           </select>
+
+          {form.region === 'Other' && (
+            <input
+              type="text"
+              name="custom_region"
+              placeholder="Enter your city or region"
+              value={form.custom_region}
+              onChange={handleChange}
+              className="w-full border rounded-lg p-3"
+            />
+          )}
 
           <label className="flex items-center space-x-2">
             <input
@@ -135,12 +185,14 @@ const ClientSignup = () => {
             <span className="text-sm">I agree to the TurnReady terms and policies.</span>
           </label>
 
+          <TurnstileWrapper onSuccess={(token) => setCaptchaToken(token)} />
+
           <button
             type="submit"
             disabled={submitting}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            {submitting ? 'Submitting...' : '📝 Complete Client Signup'}
+            {submitting ? 'Submitting...' : '📝 Sign Up as Client'}
           </button>
         </form>
       </div>
