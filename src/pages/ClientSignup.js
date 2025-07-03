@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import TurnstileWrapper from '../components/TurnstileWrapper';
 
 const ClientSignup = () => {
   const [form, setForm] = useState({
@@ -15,6 +16,7 @@ const ClientSignup = () => {
     agree_terms: false,
   });
 
+  const [token, setToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
@@ -34,13 +36,21 @@ const ClientSignup = () => {
       return;
     }
 
+    if (!token) {
+      toast.error('❌ Bot verification failed. Please try again.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      // Step 1: Create Supabase Auth user
+      // Step 1: Create Supabase Auth user with CAPTCHA token
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          captchaToken: token, // ✅ required if CAPTCHA is enabled
+        },
       });
 
       if (signUpError) throw signUpError;
@@ -82,7 +92,6 @@ const ClientSignup = () => {
       <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-lg">
         <h1 className="text-2xl font-bold mb-6 text-blue-700">🏠 Client Signup</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <input
             type="text"
             name="full_name"
@@ -157,6 +166,9 @@ const ClientSignup = () => {
             />
             <span className="text-sm">I agree to the TurnReady terms and policies.</span>
           </label>
+
+          {/* ✅ CAPTCHA Verification */}
+          <TurnstileWrapper onSuccess={(token) => setToken(token)} />
 
           <button
             type="submit"
