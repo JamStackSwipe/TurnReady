@@ -16,7 +16,7 @@ const ClientSignup = () => {
     agree_terms: false,
   });
 
-  const [token, setToken] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ const ClientSignup = () => {
       return;
     }
 
-    if (!token) {
+    if (!captchaToken) {
       toast.error('❌ Bot verification failed. Please try again.');
       return;
     }
@@ -49,19 +49,19 @@ const ClientSignup = () => {
         email: form.email,
         password: form.password,
         options: {
-          captchaToken: token, // ✅ required if CAPTCHA is enabled
+          captchaToken, // ✅ required if CAPTCHA enabled
         },
       });
 
       if (signUpError) throw signUpError;
 
-      // Step 2: Get the user ID
+      // Step 2: Get user ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user?.id) throw new Error('User creation failed.');
 
       const userId = userData.user.id;
 
-      // Step 3: Insert client profile
+      // Step 3: Insert into client_profiles
       const { error: profileError } = await supabase.from('client_profiles').insert([
         {
           user_id: userId,
@@ -76,7 +76,6 @@ const ClientSignup = () => {
       if (profileError) throw profileError;
 
       localStorage.setItem('turnready_role', 'client');
-
       toast.success('✅ Signup complete! Please check your email to confirm.');
       navigate('/client-dashboard');
     } catch (err) {
@@ -167,8 +166,7 @@ const ClientSignup = () => {
             <span className="text-sm">I agree to the TurnReady terms and policies.</span>
           </label>
 
-          {/* ✅ CAPTCHA Verification */}
-          <TurnstileWrapper onSuccess={(token) => setToken(token)} />
+          <TurnstileWrapper onSuccess={(token) => setCaptchaToken(token)} />
 
           <button
             type="submit"
