@@ -1,5 +1,4 @@
-// src/pages/ClientSignup.js
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -44,34 +43,29 @@ const ClientSignup = () => {
     setSubmitting(true);
 
     try {
-      // Step 1: Create Supabase Auth user with CAPTCHA token
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
-          captchaToken, // ✅ required if CAPTCHA enabled
+          captchaToken, // ✅ required for Turnstile
         },
       });
 
       if (signUpError) throw signUpError;
 
-      // Step 2: Get user ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user?.id) throw new Error('User creation failed.');
 
       const userId = userData.user.id;
 
-      // Step 3: Insert into client_profiles
-      const { error: profileError } = await supabase.from('client_profiles').insert([
-        {
-          user_id: userId,
-          full_name: form.full_name,
-          email: form.email,
-          phone: form.phone,
-          region: form.region === 'Other' ? form.custom_region : form.region,
-          status: 'active',
-        },
-      ]);
+      const { error: profileError } = await supabase.from('client_profiles').insert([{
+        user_id: userId,
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        region: form.region === 'Other' ? form.custom_region : form.region,
+        status: 'active',
+      }]);
 
       if (profileError) throw profileError;
 
@@ -127,7 +121,6 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <select
             name="region"
             value={form.region}
@@ -142,7 +135,6 @@ const ClientSignup = () => {
             <option value="Fayetteville/Bentonville AR">Fayetteville / Bentonville, AR</option>
             <option value="Other">Other (Request a Region)</option>
           </select>
-
           {form.region === 'Other' && (
             <input
               type="text"
@@ -153,7 +145,6 @@ const ClientSignup = () => {
               className="w-full border rounded-lg p-3"
             />
           )}
-
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
