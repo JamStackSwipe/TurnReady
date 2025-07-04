@@ -37,29 +37,13 @@ export const AuthProvider = ({ children }) => {
           } else {
             console.warn('No profile found for user:', currentUser.id);
 
-            const storedRole = localStorage.getItem('turnready_role') || 'client';
-
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([
-                {
-                  id: currentUser.id,
-                  email: currentUser.email,
-                  role: storedRole,
-                  onboarding_complete: false,
-                  created_at: new Date().toISOString(),
-                },
-              ]);
-
-            if (insertError) {
-              console.error('Profile insert failed:', insertError.message);
+            const role = localStorage.getItem('turnready_role');
+            if (role === 'tech') {
+              window.location.href = '/techsignup';
+            } else if (role === 'client') {
+              window.location.href = '/client-signup';
             } else {
-              setProfile({
-                id: currentUser.id,
-                email: currentUser.email,
-                role: storedRole,
-                onboarding_complete: false,
-              });
+              console.warn('No role found in localStorage. Cannot redirect to onboarding.');
             }
           }
         }
@@ -76,48 +60,15 @@ export const AuthProvider = ({ children }) => {
       const newUser = session?.user || null;
       setUser(newUser);
       setProfile(null);
-
       if (newUser) {
         supabase
           .from('profiles')
           .select('*')
           .eq('id', newUser.id)
           .maybeSingle()
-          .then(async ({ data, error }) => {
-            if (error) {
-              console.error('Profile reload error:', error.message);
-              return;
-            }
-
-            if (data) {
-              setProfile(data);
-            } else {
-              console.warn('No profile on auth change for user:', newUser.id);
-              const storedRole = localStorage.getItem('turnready_role') || 'client';
-
-              const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([
-                  {
-                    id: newUser.id,
-                    email: newUser.email,
-                    role: storedRole,
-                    onboarding_complete: false,
-                    created_at: new Date().toISOString(),
-                  },
-                ]);
-
-              if (insertError) {
-                console.error('Insert on auth change failed:', insertError.message);
-              } else {
-                setProfile({
-                  id: newUser.id,
-                  email: newUser.email,
-                  role: storedRole,
-                  onboarding_complete: false,
-                });
-              }
-            }
+          .then(({ data, error }) => {
+            if (error) console.error('Profile reload error:', error.message);
+            if (data) setProfile(data);
           });
       }
     });
