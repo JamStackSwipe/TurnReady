@@ -1,5 +1,4 @@
-// src/pages/ClientSignup.js
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -22,15 +21,15 @@ const ClientSignup = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchRegions = async () => {
+    const loadRegions = async () => {
       const { data, error } = await supabase.from('regions').select('name');
       if (error) {
-        console.error('Failed to load regions:', error);
+        console.error('Error loading regions:', error.message);
       } else {
         setRegions(data.map((r) => r.name));
       }
     };
-    fetchRegions();
+    loadRegions();
   }, []);
 
   const handleChange = (e) => {
@@ -57,7 +56,7 @@ const ClientSignup = () => {
     setSubmitting(true);
 
     try {
-      // Step 1: Sign up user in Supabase Auth
+      // Step 1: Create Supabase Auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -68,7 +67,7 @@ const ClientSignup = () => {
 
       if (signUpError) throw signUpError;
 
-      // Step 2: Get the current user
+      // Step 2: Get user ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user?.id) throw new Error('User creation failed.');
 
@@ -89,7 +88,7 @@ const ClientSignup = () => {
       if (profileError) throw profileError;
 
       localStorage.setItem('turnready_role', 'client');
-      toast.success('✅ Signup complete! Redirecting...');
+      toast.success('✅ Signup complete!');
 
       setTimeout(() => {
         navigate('/client-dashboard');
@@ -117,7 +116,6 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <input
             type="email"
             name="email"
@@ -127,7 +125,6 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <input
             type="password"
             name="password"
@@ -137,7 +134,6 @@ const ClientSignup = () => {
             required
             className="w-full border rounded-lg p-3"
           />
-
           <input
             type="tel"
             name="phone"
@@ -166,7 +162,7 @@ const ClientSignup = () => {
             <input
               type="text"
               name="custom_region"
-              placeholder="Enter your city or region"
+              placeholder="Enter custom region"
               value={form.custom_region}
               onChange={handleChange}
               className="w-full border rounded-lg p-3"
