@@ -1,3 +1,5 @@
+// src/pages/MyProperties.js
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
@@ -12,8 +14,8 @@ const MyProperties = () => {
     address: '',
     door_code: '',
     notes: '',
+    photo: null,
   });
-  const [photoFile, setPhotoFile] = useState(null);
 
   useEffect(() => {
     if (user) fetchProperties();
@@ -34,49 +36,60 @@ const MyProperties = () => {
     setLoading(false);
   };
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    setNewProperty((prev) => ({ ...prev, photo: file }));
+  };
+
+  const uploadPhoto = async (file, propertyId) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${propertyId}.${fileExt}`;
+    const { error } = await supabase.storage
+      .from('property-photos')
+      .upload(fileName, file, { upsert: true });
+
+    if (error) {
+      console.error('Photo upload error:', error.message);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('property-photos')
+      .getPublicUrl(fileName);
+
+    return data?.publicUrl || null;
+  };
+
   const handleAddProperty = async () => {
     if (!newProperty.name || !newProperty.address) {
       alert('Name and Address are required.');
       return;
     }
 
-    let uploadedPhotoUrl = null;
+    const newId = uuidv4();
 
-    if (photoFile) {
-      const fileExt = photoFile.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('property-photos')
-        .upload(fileName, photoFile);
-
-      if (uploadError) {
-        console.error('Photo upload error:', uploadError.message);
-        alert('Failed to upload image.');
-        return;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('property-photos')
-        .getPublicUrl(fileName);
-
-      uploadedPhotoUrl = urlData.publicUrl;
+    // Upload photo first (if provided)
+    let photoUrl = null;
+    if (newProperty.photo) {
+      photoUrl = await uploadPhoto(newProperty.photo, newId);
     }
 
-    const { error } = await supabase.from('properties').insert([{
-      id: uuidv4(),
-      client_id: user.id,
-      name: newProperty.name,
-      address: newProperty.address,
-      door_code: newProperty.door_code || null,
-      notes: newProperty.notes || null,
-      photo_url: uploadedPhotoUrl,
-    }]);
+    const { error } = await supabase.from('properties').insert([
+      {
+        id: newId,
+        client_id: user.id,
+        name: newProperty.name,
+        address: newProperty.address,
+        door_code: newProperty.door_code || null,
+        notes: newProperty.notes || null,
+        property_photo_url: photoUrl,
+      },
+    ]);
 
     if (error) {
       console.error('Error adding property:', error.message);
     } else {
-      setNewProperty({ name: '', address: '', door_code: '', notes: '' });
-      setPhotoFile(null);
+      setNewProperty({ name: '', address: '', door_code: '', notes: '', photo: null });
       fetchProperties();
     }
   };
@@ -85,7 +98,6 @@ const MyProperties = () => {
     <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">🏡 My Properties</h1>
 
-      {/* Add Property Form */}
       <div className="bg-white rounded-xl shadow p-4 mb-6 space-y-4">
         <input
           type="text"
@@ -117,8 +129,8 @@ const MyProperties = () => {
         <input
           type="file"
           accept="image/*"
-          onChange={(e) => setPhotoFile(e.target.files[0])}
-          className="w-full border rounded px-3 py-2"
+          onChange={handlePhotoChange}
+          className="w-full"
         />
         <button
           onClick={handleAddProperty}
@@ -128,7 +140,6 @@ const MyProperties = () => {
         </button>
       </div>
 
-      {/* Property List */}
       {loading ? (
         <p>Loading properties...</p>
       ) : properties.length === 0 ? (
@@ -136,15 +147,12 @@ const MyProperties = () => {
       ) : (
         <div className="space-y-4">
           {properties.map((property) => (
-            <div
-              key={property.id}
-              className="bg-white p-4 rounded-xl shadow border space-y-2"
-            >
-              {property.photo_url && (
+            <div key={property.id} className="bg-white p-4 rounded-xl shadow border space-y-2">
+              {property.property_photo_url && (
                 <img
-                  src={property.photo_url}
-                  alt="Property"
-                  className="w-full h-40 object-cover rounded"
+                  src={property.property_photo_url}
+                  alt="Cabin"
+                  className="w-full h-48 object-cover rounded"
                 />
               )}
               <h3 className="text-lg font-semibold">{property.name}</h3>
