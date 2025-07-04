@@ -6,6 +6,7 @@ const SubmitJob = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    property_id: '',
     property_name: '',
     job_type: '',
     urgency: '',
@@ -15,21 +16,36 @@ const SubmitJob = () => {
     contact_name: '',
     contact_phone: '',
     special_instructions: '',
-    door_code: '', // Stored separately
+    door_code: '', // stored separately
   });
 
   const [regions, setRegions] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    const loadRegions = async () => {
-      const { data, error } = await supabase.from('regions').select('name');
-      if (error) {
-        console.error('Failed to load regions:', error);
-      } else {
-        setRegions(data.map(r => r.name));
+    const init = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (!user) {
+        toast.error('User not logged in');
+        return;
       }
+      setUserId(user.id);
+
+      const [{ data: regionData, error: regionErr }, { data: propData, error: propErr }] = await Promise.all([
+        supabase.from('regions').select('name'),
+        supabase.from('properties').select('id, name, address').eq('owner_id', user.id),
+      ]);
+
+      if (regionErr) console.error('Error loading regions:', regionErr.message);
+      else setRegions(regionData.map((r) => r.name));
+
+      if (propErr) console.error('Error loading properties:', propErr.message);
+      else setProperties(propData);
     };
-    loadRegions();
+
+    init();
   }, []);
 
   const handleChange = (e) => {
@@ -37,14 +53,26 @@ const SubmitJob = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePropertySelect = (e) => {
+    const propertyId = e.target.value;
+    const selected = properties.find((p) => p.id === propertyId);
+
+    setForm((prev) => ({
+      ...prev,
+      property_id: propertyId,
+      property_name: selected?.name || '',
+      address: selected?.address || '',
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const jobPayload = { ...form };
     const doorCode = jobPayload.door_code;
-    delete jobPayload.door_code; // Don't store directly in jobs table
+    delete jobPayload.door_code;
 
-    const { data, error } = await supabase
+    const { data: job, error } = await supabase
       .from('job_submissions')
       .insert([jobPayload])
       .select()
@@ -54,21 +82,20 @@ const SubmitJob = () => {
       toast.error('Failed to submit job');
       console.error(error);
     } else {
-      // Store door code securely (placeholder logic)
-      if (doorCode && data?.id) {
-        const { error: codeError } = await supabase
+      if (doorCode && job?.id) {
+        const { error: doorError } = await supabase
           .from('job_secure_data')
-          .insert([{ job_id: data.id, door_code: doorCode }]);
-
-        if (codeError) {
-          console.warn('Failed to store door code securely', codeError);
+          .insert([{ job_id: job.id, door_code: doorCode }]);
+        if (doorError) {
+          console.warn('Failed to store door code:', doorError.message);
         }
       }
 
-      toast.success('Job submitted!');
+      toast.success('Job submitted successfully!');
       setForm({
         title: '',
         description: '',
+        property_id: '',
         property_name: '',
         job_type: '',
         urgency: '',
@@ -87,6 +114,43 @@ const SubmitJob = () => {
     <div className="max-w-xl mx-auto p-6 bg-white shadow rounded">
       <h1 className="text-xl font-bold mb-4">Submit a Job</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Property selector */}
+        <label className="block font-medium">Select a Saved Property</label>
+        <select
+          name="property_id"
+          value={form.property_id}
+          onChange={handlePropertySelect}
+          className="w-full border px-4 py-2"
+        >
+          <option value="">-- Optional: Choose a saved property --</option>
+          {properties.map((prop) => (
+            <option key={prop.id} value={prop.id}>
+              {prop.name} — {prop.address}
+            </option>
+          ))}
+        </select>
+
+        {/* Manual fallback fields */}
+        <input
+          type="text"
+          name="property_name"
+          placeholder="Property Name"
+          value={form.property_name}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+        <input
+          type="text"
+          name="address"
+          placeholder="Property Address"
+          value={form.address}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+
+        {/* Job info */}
         <input
           type="text"
           name="title"
@@ -96,11 +160,10 @@ const SubmitJob = () => {
           className="w-full border px-4 py-2"
           required
         />
-        <input
-          type="text"
-          name="property_name"
-          placeholder="Property Name"
-          value={form.property_name}
+        <textarea
+          name="description"
+          placeholder="Job Description"
+          value={form.description}
           onChange={handleChange}
           className="w-full border px-4 py-2"
           required
@@ -130,6 +193,8 @@ const SubmitJob = () => {
           <option value="Same Day">Same Day</option>
           <option value="Routine">Routine</option>
         </select>
+
+        {/* Region */}
         <label className="block font-medium">Service Region</label>
         <select
           name="region"
@@ -145,19 +210,12 @@ const SubmitJob = () => {
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          name="address"
-          placeholder="Property Address"
-          value={form.address}
-          onChange={handleChange}
-          className="w-full border px-4 py-2"
-          required
-        />
+
+        {/* Time + contact */}
         <input
           type="text"
           name="preferred_time"
-          placeholder="Preferred Time Window (e.g. 2–4 PM)"
+          placeholder="Preferred Time (e.g. 2–4 PM)"
           value={form.preferred_time}
           onChange={handleChange}
           className="w-full border px-4 py-2"
@@ -180,9 +238,11 @@ const SubmitJob = () => {
           className="w-full border px-4 py-2"
           required
         />
+
+        {/* Other notes */}
         <textarea
           name="special_instructions"
-          placeholder="Special Instructions (dogs, guests, gate code, etc.)"
+          placeholder="Special Instructions (gate code, dogs, etc.)"
           value={form.special_instructions}
           onChange={handleChange}
           className="w-full border px-4 py-2"
@@ -190,11 +250,13 @@ const SubmitJob = () => {
         <input
           type="text"
           name="door_code"
-          placeholder="Door Code (will only be shown to assigned tech)"
+          placeholder="Door Code (visible only to assigned tech)"
           value={form.door_code}
           onChange={handleChange}
           className="w-full border px-4 py-2"
         />
+
+        {/* Submit */}
         <button
           type="submit"
           className="bg-blue-600 text-white px-6 py-2 rounded"
