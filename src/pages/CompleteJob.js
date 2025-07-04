@@ -1,32 +1,32 @@
-// src/pages/CompleteJob.js
-
+// Updated CompleteJob.js with support for multiple media types and admin override
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
 
+const mediaTypes = ['before', 'after', 'gauge', 'temp', 'issue', 'solution', 'other'];
+
 const CompleteJob = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, role } = useUser();
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState('');
-  const [photoFiles, setPhotoFiles] = useState([]);
+  const [mediaFiles, setMediaFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
       const { data, error } = await supabase
-        .from('job_submissions')
-        .select('*')
+        .from('jobs')
+        .select('*, properties(*)')
         .eq('id', jobId)
         .single();
 
       if (error) {
-        console.error(error);
         toast.error('❌ Error loading job.');
       } else {
         setJob(data);
@@ -37,39 +37,72 @@ const CompleteJob = () => {
     if (jobId) fetchJob();
   }, [jobId]);
 
-  const handleFileChange = (e) => {
-    setPhotoFiles(Array.from(e.target.files));
+  const handleFileChange = (index, file) => {
+    const newFiles = [...mediaFiles];
+    newFiles[index].file = file;
+    setMediaFiles(newFiles);
+  };
+
+  const handleAddFile = () => {
+    setMediaFiles([...mediaFiles, { file: null, type: 'other' }]);
+  };
+
+  const handleTypeChange = (index, type) => {
+    const newFiles = [...mediaFiles];
+    newFiles[index].type = type;
+    setMediaFiles(newFiles);
+  };
+
+  const handleRemoveFile = (index) => {
+    const newFiles = [...mediaFiles];
+    newFiles.splice(index, 1);
+    setMediaFiles(newFiles);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user || !jobId) return;
 
+    if (role !== 'admin' && job?.tech_id !== user.id) {
+      toast.error('You do not have permission to complete this job.');
+      return;
+    }
+
     setUploading(true);
-
     try {
-      const photoUrls = [];
+      const uploads = [];
 
-      for (const file of photoFiles) {
-        const filePath = `job-completions/${jobId}/${Date.now()}-${file.name}`;
-        const { data, error } = await supabase.storage
-          .from('job-photos')
-          .upload(filePath, file);
+      for (const [index, media] of mediaFiles.entries()) {
+        if (!media.file) continue;
 
-        if (error) throw error;
+        const filePath = `job-media/${jobId}/${Date.now()}-${media.type}-${media.file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('job-media')
+          .upload(filePath, media.file);
+
+        if (uploadError) throw uploadError;
 
         const { publicUrl } = supabase.storage
-          .from('job-photos')
+          .from('job-media')
           .getPublicUrl(filePath).data;
 
-        photoUrls.push(publicUrl);
+        uploads.push({
+          job_id: jobId,
+          user_id: user.id,
+          media_type: media.type,
+          file_url: publicUrl,
+        });
+      }
+
+      if (uploads.length > 0) {
+        const { error: mediaInsertError } = await supabase.from('job_media').insert(uploads);
+        if (mediaInsertError) throw mediaInsertError;
       }
 
       const { error: updateError } = await supabase
-        .from('job_submissions')
+        .from('jobs')
         .update({
           completed_notes: notes,
-          completed_photos: photoUrls,
           status: 'completed',
           completed_at: new Date().toISOString(),
         })
@@ -96,8 +129,8 @@ const CompleteJob = () => {
         <h1 className="text-2xl font-bold mb-4 text-green-700">📸 Complete Job</h1>
 
         <div className="mb-6 space-y-2 text-gray-800">
-          <p><strong>Property:</strong> {job.propertyName}</p>
-          <p><strong>Address:</strong> {job.address}</p>
+          <p><strong>Property:</strong> {job.properties?.name}</p>
+          <p><strong>Address:</strong> {job.properties?.address}</p>
           <p><strong>Description:</strong> {job.description}</p>
         </div>
 
@@ -114,17 +147,46 @@ const CompleteJob = () => {
             />
           </label>
 
-          <label className="block">
-            <span className="font-medium text-gray-700">Upload Completion Photos</span>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full mt-1"
-              required
-            />
-          </label>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Upload Media</span>
+              <button
+                type="button"
+                onClick={handleAddFile}
+                className="text-blue-600 hover:underline"
+              >
+                ➕ Add File
+              </button>
+            </div>
+
+            {mediaFiles.map((media, index) => (
+              <div key={index} className="flex flex-col sm:flex-row items-center gap-4 border p-3 rounded">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => handleFileChange(index, e.target.files[0])}
+                  className="flex-1"
+                  required
+                />
+                <select
+                  value={media.type}
+                  onChange={(e) => handleTypeChange(index, e.target.value)}
+                  className="border p-2 rounded"
+                >
+                  {mediaTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFile(index)}
+                  className="text-red-500 hover:underline"
+                >
+                  ❌ Remove
+                </button>
+              </div>
+            ))}
+          </div>
 
           <button
             type="submit"
