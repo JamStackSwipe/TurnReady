@@ -1,14 +1,12 @@
-// src/pages/PartsRequest.js
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const PartsRequest = () => {
-  const { jobId } = useParams(); // Optional route param
+  const { jobId } = useParams();
+
   const [form, setForm] = useState({
-    job_id: jobId || '',
     model_number: '',
     serial_number: '',
     part_number: '',
@@ -19,8 +17,8 @@ const PartsRequest = () => {
     tech_will_source: true,
   });
 
-  const [partPhoto, setPartPhoto] = useState(null);
-  const [invoicePhoto, setInvoicePhoto] = useState(null);
+  const [partPhotoFile, setPartPhotoFile] = useState(null);
+  const [invoicePhotoFile, setInvoicePhotoFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -31,6 +29,19 @@ const PartsRequest = () => {
     }));
   };
 
+  const uploadFile = async (file, folder) => {
+    const path = `${folder}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from('parts').upload(path, file);
+
+    if (error) throw error;
+
+    const { publicUrl } = supabase.storage
+      .from('parts')
+      .getPublicUrl(path).data;
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -39,26 +50,12 @@ const PartsRequest = () => {
       let partPhotoUrl = null;
       let invoicePhotoUrl = null;
 
-      if (partPhoto) {
-        const { data, error } = await supabase.storage
-          .from('parts')
-          .upload(`photos/${Date.now()}_${partPhoto.name}`, partPhoto);
-
-        if (error) throw error;
-        partPhotoUrl = data.path;
-      }
-
-      if (invoicePhoto) {
-        const { data, error } = await supabase.storage
-          .from('parts')
-          .upload(`invoices/${Date.now()}_${invoicePhoto.name}`, invoicePhoto);
-
-        if (error) throw error;
-        invoicePhotoUrl = data.path;
-      }
+      if (partPhotoFile) partPhotoUrl = await uploadFile(partPhotoFile, 'photos');
+      if (invoicePhotoFile) invoicePhotoUrl = await uploadFile(invoicePhotoFile, 'invoices');
 
       const { error: insertError } = await supabase.from('part_requests').insert([
         {
+          job_id: jobId,
           ...form,
           part_photo: partPhotoUrl,
           invoice_photo: invoicePhotoUrl,
@@ -69,7 +66,6 @@ const PartsRequest = () => {
 
       toast.success('✅ Part request submitted!');
       setForm({
-        job_id: jobId || '',
         model_number: '',
         serial_number: '',
         part_number: '',
@@ -79,10 +75,10 @@ const PartsRequest = () => {
         repair_level: '',
         tech_will_source: true,
       });
-      setPartPhoto(null);
-      setInvoicePhoto(null);
+      setPartPhotoFile(null);
+      setInvoicePhotoFile(null);
     } catch (err) {
-      console.error(err.message);
+      console.error(err);
       toast.error('❌ Failed to submit part request.');
     } finally {
       setSubmitting(false);
@@ -91,17 +87,8 @@ const PartsRequest = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-8">
-      <h1 className="text-2xl font-bold mb-4">🧩 Request a Part</h1>
+      <h1 className="text-2xl font-bold mb-4 text-blue-700">🧩 Request a Part</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="job_id"
-          placeholder="Job ID"
-          value={form.job_id}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-
         <input
           name="model_number"
           placeholder="Unit Model Number"
@@ -180,24 +167,28 @@ const PartsRequest = () => {
           <span>Tech will supply part</span>
         </label>
 
-        <label className="block text-sm font-medium text-gray-700">📸 Upload Part Photo</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setPartPhoto(e.target.files[0])}
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700">📸 Upload Part Photo</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPartPhotoFile(e.target.files[0])}
+          />
+        </div>
 
-        <label className="block text-sm font-medium text-gray-700">🧾 Upload Invoice (optional)</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setInvoicePhoto(e.target.files[0])}
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700">🧾 Upload Invoice (optional)</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setInvoicePhotoFile(e.target.files[0])}
+          />
+        </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
         >
           {submitting ? 'Submitting...' : 'Submit Part Request'}
         </button>
