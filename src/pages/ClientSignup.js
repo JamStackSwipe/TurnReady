@@ -1,137 +1,126 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import React, { useState } from 'react';
 import { useUser } from '../components/AuthProvider';
+import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const ClientSignup = () => {
   const { user } = useUser();
   const navigate = useNavigate();
-  const [regionOptions, setRegionOptions] = useState([]);
 
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     full_name: '',
-    email: '',
+    email: user?.email || '',
     phone: '',
     region: '',
   });
 
-  useEffect(() => {
-    const loadRegions = async () => {
-      const { data, error } = await supabase.from('regions').select('name');
-      if (error) {
-        console.error('Failed to load regions:', error);
-      } else {
-        setRegionOptions(data.map((r) => r.name));
-      }
-    };
-    loadRegions();
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
 
-    const clientProfile = {
-      user_id: user.id,
-      full_name: formData.full_name,
-      email: formData.email,
-      phone: formData.phone,
-      region: formData.region,
-      status: 'active',
-      created_at: new Date().toISOString(),
-    };
+    if (!form.full_name || !form.phone || !form.region) {
+      toast.error('Please fill out all required fields.');
+      return;
+    }
 
-    const profileUpdate = {
-      full_name: formData.full_name,
-      phone: formData.phone,
-      region: formData.region,
-      role: 'client',
-      updated_at: new Date().toISOString(),
-    };
+    setLoading(true);
 
     try {
-      const { error: clientError } = await supabase
-        .from('client_profiles')
-        .insert(clientProfile);
+      // 1️⃣ Insert into client_profiles
+      const { error: clientError } = await supabase.from('client_profiles').upsert({
+        user_id: user.id,
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        region: form.region,
+        status: 'active',
+        role: 'client',
+      });
 
       if (clientError) throw clientError;
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update(profileUpdate)
-        .eq('id', user.id);
+      // 2️⃣ Upsert into profiles (for session + AuthProvider detection)
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        role: 'client',
+        region: form.region,
+        onboarding_complete: true,
+      });
 
       if (profileError) throw profileError;
 
-      toast.success('✅ Client profile completed!');
-      localStorage.setItem('turnready_role', 'client');
+      toast.success('✅ Client profile created successfully!');
       navigate('/client-dashboard');
-    } catch (error) {
-      console.error(error);
-      toast.error(`Error completing profile: ${error.message}`);
+
+    } catch (err) {
+      console.error('ClientSignup error:', err.message);
+      toast.error(`Signup failed: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-4 text-blue-700">🏠 Complete Your Client Profile</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="full_name"
-          placeholder="Full Name"
-          value={formData.full_name}
-          onChange={handleChange}
-          required
-          className="w-full border px-4 py-2"
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          className="w-full border px-4 py-2"
-        />
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Phone"
-          value={formData.phone}
-          onChange={handleChange}
-          required
-          className="w-full border px-4 py-2"
-        />
-        <label className="block font-medium mb-1">Select Region</label>
-        <select
-          name="region"
-          value={formData.region}
-          onChange={handleChange}
-          required
-          className="w-full border px-4 py-2"
-        >
-          <option value="">Select Region</option>
-          {regionOptions.map((region) => (
-            <option key={region} value={region}>
-              {region}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
-        >
-          ✅ Submit Client Profile
-        </button>
-      </form>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center text-blue-700 mb-4">🏡 Complete Client Profile</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            name="full_name"
+            placeholder="Full Name"
+            value={form.full_name}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            disabled
+            className="w-full border rounded-lg p-3 bg-gray-100 text-gray-500"
+          />
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={form.phone}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          />
+          <select
+            name="region"
+            value={form.region}
+            onChange={handleChange}
+            className="w-full border rounded-lg p-3"
+            required
+          >
+            <option value="">Select Your Region</option>
+            <option value="Broken Bow">Broken Bow</option>
+            <option value="Hot Springs">Hot Springs</option>
+            <option value="Other">Other</option>
+          </select>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            {loading ? 'Saving...' : 'Save & Continue'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
