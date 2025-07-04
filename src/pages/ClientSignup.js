@@ -1,197 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useUser } from '../components/AuthProvider';
 import toast from 'react-hot-toast';
-import TurnstileWrapper from '../components/TurnstileWrapper';
+import { useNavigate } from 'react-router-dom';
 
 const ClientSignup = () => {
-  const [form, setForm] = useState({
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const [regionOptions, setRegionOptions] = useState([]);
+
+  const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    password: '',
     phone: '',
     region: '',
-    custom_region: '',
-    agree_terms: false,
   });
-
-  const [regions, setRegions] = useState([]);
-  const [captchaToken, setCaptchaToken] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const loadRegions = async () => {
       const { data, error } = await supabase.from('regions').select('name');
       if (error) {
-        console.error('Error loading regions:', error.message);
+        console.error('Failed to load regions:', error);
       } else {
-        setRegions(data.map((r) => r.name));
+        setRegionOptions(data.map((r) => r.name));
       }
     };
     loadRegions();
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
 
-    if (!form.agree_terms) {
-      toast.error('❌ You must agree to the terms.');
-      return;
-    }
+    const clientProfile = {
+      user_id: user.id,
+      full_name: formData.full_name,
+      email: formData.email,
+      phone: formData.phone,
+      region: formData.region,
+      status: 'active',
+      created_at: new Date().toISOString(),
+    };
 
-    if (!captchaToken) {
-      toast.error('❌ Bot verification failed. Please try again.');
-      return;
-    }
-
-    setSubmitting(true);
+    const profileUpdate = {
+      full_name: formData.full_name,
+      phone: formData.phone,
+      region: formData.region,
+      role: 'client',
+      updated_at: new Date().toISOString(),
+    };
 
     try {
-      // Step 1: Create Supabase Auth user
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          captchaToken,
-        },
-      });
+      const { error: clientError } = await supabase
+        .from('client_profiles')
+        .insert(clientProfile);
 
-      if (signUpError) throw signUpError;
+      if (clientError) throw clientError;
 
-      // Step 2: Get user ID
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user?.id) throw new Error('User creation failed.');
-
-      const userId = userData.user.id;
-
-      // Step 3: Insert into client_profiles
-      const { error: profileError } = await supabase.from('client_profiles').insert([
-        {
-          user_id: userId,
-          full_name: form.full_name,
-          email: form.email,
-          phone: form.phone,
-          region: form.region === 'Other' ? form.custom_region : form.region,
-          status: 'active',
-        },
-      ]);
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
+      toast.success('✅ Client profile completed!');
       localStorage.setItem('turnready_role', 'client');
-      toast.success('✅ Signup complete!');
-
-      setTimeout(() => {
-        navigate('/client-dashboard');
-      }, 500);
-    } catch (err) {
-      console.error(err);
-      toast.error(`Signup failed: ${err.message}`);
+      navigate('/client-dashboard');
+    } catch (error) {
+      console.error(error);
+      toast.error(`Error completing profile: ${error.message}`);
     }
-
-    setSubmitting(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center px-4">
-      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-lg">
-        <h1 className="text-2xl font-bold mb-6 text-blue-700">🏠 Client Signup</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded shadow">
+      <h1 className="text-2xl font-bold mb-4 text-blue-700">🏠 Complete Your Client Profile</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          name="full_name"
+          placeholder="Full Name"
+          value={formData.full_name}
+          onChange={handleChange}
+          required
+          className="w-full border px-4 py-2"
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+          className="w-full border px-4 py-2"
+        />
+        <input
+          type="tel"
+          name="phone"
+          placeholder="Phone"
+          value={formData.phone}
+          onChange={handleChange}
+          required
+          className="w-full border px-4 py-2"
+        />
+        <label className="block font-medium mb-1">Select Region</label>
+        <select
+          name="region"
+          value={formData.region}
+          onChange={handleChange}
+          required
+          className="w-full border px-4 py-2"
+        >
+          <option value="">Select Region</option>
+          {regionOptions.map((region) => (
+            <option key={region} value={region}>
+              {region}
+            </option>
+          ))}
+        </select>
 
-          <input
-            type="text"
-            name="full_name"
-            placeholder="Full Name"
-            value={form.full_name}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Create a Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Phone Number"
-            value={form.phone}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          />
-
-          <select
-            name="region"
-            value={form.region}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3"
-          >
-            <option value="">Select Region</option>
-            {regions.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-            <option value="Other">Other (Request a Region)</option>
-          </select>
-
-          {form.region === 'Other' && (
-            <input
-              type="text"
-              name="custom_region"
-              placeholder="Enter custom region"
-              value={form.custom_region}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            />
-          )}
-
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="agree_terms"
-              checked={form.agree_terms}
-              onChange={handleChange}
-              className="h-4 w-4"
-              required
-            />
-            <span className="text-sm">I agree to the TurnReady terms and policies.</span>
-          </label>
-
-          <TurnstileWrapper onSuccess={(token) => setCaptchaToken(token)} />
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            {submitting ? 'Submitting...' : '📝 Sign Up as Client'}
-          </button>
-        </form>
-      </div>
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+        >
+          ✅ Submit Client Profile
+        </button>
+      </form>
     </div>
   );
 };
