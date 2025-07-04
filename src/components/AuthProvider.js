@@ -35,15 +35,32 @@ export const AuthProvider = ({ children }) => {
           if (profileData) {
             setProfile(profileData);
           } else {
-            console.warn('⚠️ No profile row found for user:', currentUser.id);
-            // ⛑️ fallback so logged-in clients can still proceed
-            setProfile({
-              id: currentUser.id,
-              email: currentUser.email,
-              full_name: currentUser.user_metadata?.full_name || '',
-              role: 'client', // assume client if unknown
-              onboarding_complete: false,
-            });
+            console.warn('No profile found for user:', currentUser.id);
+
+            const storedRole = localStorage.getItem('turnready_role') || 'client';
+
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: currentUser.id,
+                  email: currentUser.email,
+                  role: storedRole,
+                  onboarding_complete: false,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+
+            if (insertError) {
+              console.error('Profile insert failed:', insertError.message);
+            } else {
+              setProfile({
+                id: currentUser.id,
+                email: currentUser.email,
+                role: storedRole,
+                onboarding_complete: false,
+              });
+            }
           }
         }
       } catch (err) {
@@ -59,25 +76,47 @@ export const AuthProvider = ({ children }) => {
       const newUser = session?.user || null;
       setUser(newUser);
       setProfile(null);
+
       if (newUser) {
         supabase
           .from('profiles')
           .select('*')
           .eq('id', newUser.id)
           .maybeSingle()
-          .then(({ data, error }) => {
-            if (error) console.error('Profile reload error:', error.message);
+          .then(async ({ data, error }) => {
+            if (error) {
+              console.error('Profile reload error:', error.message);
+              return;
+            }
+
             if (data) {
               setProfile(data);
             } else {
-              console.warn('⚠️ No profile found during reload:', newUser.id);
-              setProfile({
-                id: newUser.id,
-                email: newUser.email,
-                full_name: newUser.user_metadata?.full_name || '',
-                role: 'client',
-                onboarding_complete: false,
-              });
+              console.warn('No profile on auth change for user:', newUser.id);
+              const storedRole = localStorage.getItem('turnready_role') || 'client';
+
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([
+                  {
+                    id: newUser.id,
+                    email: newUser.email,
+                    role: storedRole,
+                    onboarding_complete: false,
+                    created_at: new Date().toISOString(),
+                  },
+                ]);
+
+              if (insertError) {
+                console.error('Insert on auth change failed:', insertError.message);
+              } else {
+                setProfile({
+                  id: newUser.id,
+                  email: newUser.email,
+                  role: storedRole,
+                  onboarding_complete: false,
+                });
+              }
             }
           });
       }
