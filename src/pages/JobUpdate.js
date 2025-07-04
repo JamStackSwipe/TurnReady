@@ -1,3 +1,4 @@
+// Modernized JobUpdate.js for jobs table
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -5,12 +6,12 @@ import toast from 'react-hot-toast';
 import { useUser } from '../components/AuthProvider';
 
 const JobUpdate = () => {
-  const { user } = useUser();
+  const { user, role } = useUser();
   const { jobId } = useParams();
   const navigate = useNavigate();
 
   const [job, setJob] = useState(null);
-  const [techNotes, setTechNotes] = useState('');
+  const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('');
   const [needsPart, setNeedsPart] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,12 +20,7 @@ const JobUpdate = () => {
     const fetchJob = async () => {
       const { data, error } = await supabase
         .from('jobs')
-        .select(`
-          *,
-          properties (
-            name
-          )
-        `)
+        .select('*, properties(*)')
         .eq('id', jobId)
         .single();
 
@@ -33,28 +29,28 @@ const JobUpdate = () => {
         return;
       }
 
-      if (data.accepted_by !== user.id) {
-        toast.error('You are not assigned to this job');
-        navigate('/tech-dashboard');
-        return;
-      }
-
       setJob(data);
       setStatus(data.status || '');
-      setTechNotes(data.tech_notes || '');
+      setNotes(data.notes || '');
       setLoading(false);
     };
 
     if (jobId) fetchJob();
-  }, [jobId, user.id, navigate]);
+  }, [jobId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!user) return;
+    if (role !== 'admin' && job?.tech_id !== user.id) {
+      toast.error('You do not have permission to update this job.');
+      return;
+    }
+
     const { error } = await supabase
       .from('jobs')
       .update({
-        tech_notes: techNotes,
+        notes,
         status,
         updated_at: new Date().toISOString(),
       })
@@ -67,22 +63,7 @@ const JobUpdate = () => {
 
     toast.success('✅ Job updated');
 
-    if (needsPart) {
-      navigate(`/parts-request/${jobId}`);
-    } else {
-      navigate('/my-jobs');
-    }
-
-    // Optional: Notify client
-    if (job?.client_id) {
-      await supabase.from('notifications').insert([{
-        user_id: job.client_id,
-        message: `Job "${job.properties?.name || 'a job'}" was updated.`,
-        job_id: jobId,
-        type: 'job_update',
-        seen: false,
-      }]);
-    }
+    if (needsPart) navigate(`/parts-request/${jobId}`);
   };
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;
@@ -90,14 +71,14 @@ const JobUpdate = () => {
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
       <h2 className="text-2xl font-bold text-blue-700 mb-4">
-        🔧 Update Job: {job.properties?.name || 'Unnamed Property'}
+        🔧 Update Job: {job?.properties?.name || 'Property'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
           placeholder="Update Notes"
-          value={techNotes}
-          onChange={(e) => setTechNotes(e.target.value)}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           className="w-full border rounded-lg p-3"
           rows={6}
         />
