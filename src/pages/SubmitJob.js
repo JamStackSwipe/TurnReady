@@ -1,4 +1,3 @@
-// src/pages/SubmitJob.js
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { supabase } from '../supabaseClient';
@@ -7,10 +6,16 @@ const SubmitJob = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    property_name: '',
+    job_type: '',
+    urgency: '',
     region: '',
     address: '',
+    preferred_time: '',
     contact_name: '',
     contact_phone: '',
+    special_instructions: '',
+    door_code: '', // Stored separately
   });
 
   const [regions, setRegions] = useState([]);
@@ -35,20 +40,45 @@ const SubmitJob = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { error } = await supabase.from('job_submissions').insert([form]);
+    const jobPayload = { ...form };
+    const doorCode = jobPayload.door_code;
+    delete jobPayload.door_code; // Don't store directly in jobs table
+
+    const { data, error } = await supabase
+      .from('job_submissions')
+      .insert([jobPayload])
+      .select()
+      .single();
 
     if (error) {
       toast.error('Failed to submit job');
       console.error(error);
     } else {
+      // Store door code securely (placeholder logic)
+      if (doorCode && data?.id) {
+        const { error: codeError } = await supabase
+          .from('job_secure_data')
+          .insert([{ job_id: data.id, door_code: doorCode }]);
+
+        if (codeError) {
+          console.warn('Failed to store door code securely', codeError);
+        }
+      }
+
       toast.success('Job submitted!');
       setForm({
         title: '',
         description: '',
+        property_name: '',
+        job_type: '',
+        urgency: '',
         region: '',
         address: '',
+        preferred_time: '',
         contact_name: '',
         contact_phone: '',
+        special_instructions: '',
+        door_code: '',
       });
     }
   };
@@ -66,14 +96,40 @@ const SubmitJob = () => {
           className="w-full border px-4 py-2"
           required
         />
-        <textarea
-          name="description"
-          placeholder="Job Description"
-          value={form.description}
+        <input
+          type="text"
+          name="property_name"
+          placeholder="Property Name"
+          value={form.property_name}
           onChange={handleChange}
           className="w-full border px-4 py-2"
           required
         />
+        <select
+          name="job_type"
+          value={form.job_type}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        >
+          <option value="">Select Job Type</option>
+          <option value="HVAC">HVAC</option>
+          <option value="Electrical">Electrical</option>
+          <option value="Plumbing">Plumbing</option>
+          <option value="Handyman">Handyman</option>
+        </select>
+        <select
+          name="urgency"
+          value={form.urgency}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        >
+          <option value="">Select Urgency</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Same Day">Same Day</option>
+          <option value="Routine">Routine</option>
+        </select>
         <label className="block font-medium">Service Region</label>
         <select
           name="region"
@@ -96,6 +152,15 @@ const SubmitJob = () => {
           value={form.address}
           onChange={handleChange}
           className="w-full border px-4 py-2"
+          required
+        />
+        <input
+          type="text"
+          name="preferred_time"
+          placeholder="Preferred Time Window (e.g. 2–4 PM)"
+          value={form.preferred_time}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
         />
         <input
           type="text"
@@ -104,12 +169,29 @@ const SubmitJob = () => {
           value={form.contact_name}
           onChange={handleChange}
           className="w-full border px-4 py-2"
+          required
         />
         <input
           type="text"
           name="contact_phone"
           placeholder="Contact Phone"
           value={form.contact_phone}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+          required
+        />
+        <textarea
+          name="special_instructions"
+          placeholder="Special Instructions (dogs, guests, gate code, etc.)"
+          value={form.special_instructions}
+          onChange={handleChange}
+          className="w-full border px-4 py-2"
+        />
+        <input
+          type="text"
+          name="door_code"
+          placeholder="Door Code (will only be shown to assigned tech)"
+          value={form.door_code}
           onChange={handleChange}
           className="w-full border px-4 py-2"
         />
