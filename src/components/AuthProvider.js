@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
-            .maybeSingle(); // ✅ safer than .single()
+            .maybeSingle();
 
           if (profileError) {
             console.warn('Profile fetch error:', profileError.message);
@@ -35,13 +35,21 @@ export const AuthProvider = ({ children }) => {
           if (profileData) {
             setProfile(profileData);
           } else {
-            console.warn('No profile found for user:', currentUser.id);
+            console.warn('⚠️ No profile row found for user:', currentUser.id);
+            // ⛑️ fallback so logged-in clients can still proceed
+            setProfile({
+              id: currentUser.id,
+              email: currentUser.email,
+              full_name: currentUser.user_metadata?.full_name || '',
+              role: 'client', // assume client if unknown
+              onboarding_complete: false,
+            });
           }
         }
       } catch (err) {
         console.error('AuthProvider fatal error:', err.message);
       } finally {
-        setLoading(false); // ✅ Always clear loading
+        setLoading(false);
       }
     };
 
@@ -56,10 +64,21 @@ export const AuthProvider = ({ children }) => {
           .from('profiles')
           .select('*')
           .eq('id', newUser.id)
-          .maybeSingle() // ✅ same here
+          .maybeSingle()
           .then(({ data, error }) => {
             if (error) console.error('Profile reload error:', error.message);
-            if (data) setProfile(data);
+            if (data) {
+              setProfile(data);
+            } else {
+              console.warn('⚠️ No profile found during reload:', newUser.id);
+              setProfile({
+                id: newUser.id,
+                email: newUser.email,
+                full_name: newUser.user_metadata?.full_name || '',
+                role: 'client',
+                onboarding_complete: false,
+              });
+            }
           });
       }
     });
