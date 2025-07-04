@@ -11,47 +11,34 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
-      try {
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        const currentUser = userData?.user;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const currentUser = userData?.user;
 
-        if (userError) {
-          console.error('User fetch error:', userError.message);
-        }
-
-        if (currentUser) {
-          setUser(currentUser);
-
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.warn('Profile fetch error:', profileError.message);
-          }
-
-          if (profileData) {
-            setProfile(profileData);
-          } else {
-            console.warn('No profile found for user:', currentUser.id);
-
-            const role = localStorage.getItem('turnready_role');
-            if (role === 'tech') {
-              window.location.href = '/techsignup';
-            } else if (role === 'client') {
-              window.location.href = '/client-signup';
-            } else {
-              console.warn('No role found in localStorage. Cannot redirect to onboarding.');
-            }
-          }
-        }
-      } catch (err) {
-        console.error('AuthProvider fatal error:', err.message);
-      } finally {
-        setLoading(false);
+      if (userError) {
+        console.error('User fetch error:', userError.message);
       }
+
+      if (currentUser) {
+        setUser(currentUser);
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.warn('Profile fetch error:', profileError.message);
+        }
+
+        if (profileData) {
+          setProfile(profileData);
+        } else {
+          console.warn('No profile found for user:', currentUser.id);
+        }
+      }
+
+      setLoading(false);
     };
 
     fetchSessionAndProfile();
