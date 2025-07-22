@@ -3,7 +3,6 @@ import { useUser } from '../components/AuthProvider';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import PropertyCard from '../components/PropertyCard'; // reusable card
 import NotificationBanner from '../components/NotificationBanner';
 
 const JobBoard = () => {
@@ -21,46 +20,81 @@ const JobBoard = () => {
         return;
       }
 
-      // Fetch tech profile
-      const { data: techProfile, error: profileError } = await supabase
-        .from('tech_profiles')
-        .select('service_area, trade')
-        .eq('user_id', user.id)
+      // Get role from 'profiles' table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
         .single();
 
-      if (profileError || !techProfile) {
-        toast.error('You are not authorized to view the Job Board.');
-        navigate('/');
+      if (profileError || !profileData) {
+        toast.error('Unable to load user role.');
         return;
       }
 
-      setProfile(techProfile);
+      const role = profileData.role;
+      setProfile(profileData);
 
-      // Fetch open jobs filtered by region and trade
-      const { data: jobsData, error: jobsError } = await supabase
-        .from('jobs')
-        .select(`
-          *,
-          properties (
-            id,
-            name,
-            address,
-            directions,
-            notes,
-            property_photo_url
-          )
-        `)
-        .eq('region', techProfile.service_area)
-        .eq('job_type', techProfile.trade)
-        .eq('status', 'open');
+      // Fetch job data based on role
+      if (role === 'tech') {
+        const { data: techProfile, error: techError } = await supabase
+          .from('tech_profiles')
+          .select('service_area, trade')
+          .eq('user_id', user.id)
+          .single();
 
-      if (jobsError) {
-        toast.error('Failed to load jobs.');
-        console.error(jobsError);
-        return;
+        if (techError || !techProfile) {
+          toast.error('Tech profile not found.');
+          return;
+        }
+
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('jobs')
+          .select(`
+            *,
+            properties (
+              id,
+              name,
+              address,
+              directions,
+              notes,
+              property_photo_url
+            )
+          `)
+          .eq('region', techProfile.service_area)
+          .eq('job_type', techProfile.trade)
+          .eq('status', 'open');
+
+        if (jobsError) {
+          toast.error('Failed to load jobs.');
+          console.error(jobsError);
+          return;
+        }
+
+        setJobs(jobsData);
+      } else if (role === 'client') {
+        const { data: clientJobs, error: clientError } = await supabase
+          .from('jobs')
+          .select(`
+            *,
+            properties (
+              name,
+              address,
+              property_photo_url
+            )
+          `)
+          .eq('client_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (clientError) {
+          toast.error('Failed to load your jobs.');
+          console.error(clientError);
+          return;
+        }
+
+        setJobs(clientJobs);
       }
 
-      setJobs(jobsData);
       setLoading(false);
     };
 
@@ -81,21 +115,29 @@ const JobBoard = () => {
     }
   };
 
-  if (loading) return <div className="p-4">Loading available jobs...</div>;
+  if (loading) return <div className="p-4">Loading jobs...</div>;
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-4">🛠️ Jobs in {profile?.service_area}</h2>
+      <h2 className="text-3xl font-bold mb-4">
+        {profile?.role === 'client' ? '📋 Your Submitted Jobs' : '🛠️ Jobs in Your Area'}
+      </h2>
 
       <NotificationBanner message="Jobs are updated in real time. Check back often!" />
 
       {jobs.length === 0 ? (
-        <p className="text-gray-600 mt-4">No open jobs in your area yet.</p>
+        <p className="text-gray-600 mt-4">
+          {profile?.role === 'client'
+            ? 'You haven’t submitted any jobs yet.'
+            : 'No open jobs in your area yet.'}
+        </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {jobs.map((job) => (
-            <div key={job.id} className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
-              {/* PropertyCard reused inline */}
+            <div
+              key={job.id}
+              className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden"
+            >
               {job.properties && (
                 <div className="p-4">
                   <img
@@ -105,31 +147,26 @@ const JobBoard = () => {
                   />
                   <h3 className="text-lg font-semibold">{job.properties.name}</h3>
                   <p className="text-sm text-gray-600">{job.properties.address}</p>
-                  {job.properties.directions && (
-                    <p className="text-xs text-gray-500 italic">{job.properties.directions}</p>
-                  )}
-                  {job.properties.notes && (
-                    <p className="text-sm mt-1"><strong>Notes:</strong> {job.properties.notes}</p>
-                  )}
                 </div>
               )}
 
-              {/* Job info */}
               <div className="p-4 border-t">
                 <h4 className="text-md font-semibold">{job.title}</h4>
                 <p className="text-sm text-gray-600 mb-1">{job.description}</p>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 space-y-1">
                   <div><strong>Type:</strong> {job.job_type}</div>
-                  <div><strong>Urgency:</strong> {job.urgency}</div>
+                  <div><strong>Status:</strong> {job.status}</div>
                   <div><strong>Scheduled:</strong> {job.scheduled_date || 'TBD'}</div>
                 </div>
 
-                <button
-                  onClick={() => handleAcceptJob(job.id)}
-                  className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"
-                >
-                  Accept Job
-                </button>
+                {profile?.role === 'tech' && (
+                  <button
+                    onClick={() => handleAcceptJob(job.id)}
+                    className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"
+                  >
+                    Accept Job
+                  </button>
+                )}
               </div>
             </div>
           ))}
