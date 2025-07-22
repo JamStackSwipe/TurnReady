@@ -1,5 +1,3 @@
-// src/pages/TechDashboard.js
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +6,7 @@ import { useUser } from '../components/AuthProvider';
 const TechDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profileStats, setProfileStats] = useState(null);
   const { user } = useUser();
   const navigate = useNavigate();
 
@@ -28,8 +27,23 @@ const TechDashboard = () => {
       setLoading(false);
     };
 
+    const fetchProfileStats = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('tech_tier, avg_rating, total_jobs_completed, total_callbacks, total_disputes')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile stats:', error.message);
+      } else {
+        setProfileStats(data);
+      }
+    };
+
     fetchJobs();
-  }, []);
+    fetchProfileStats();
+  }, [user.id]);
 
   const handleAcceptJob = async (jobId) => {
     const { error } = await supabase
@@ -42,7 +56,6 @@ const TechDashboard = () => {
       return;
     }
 
-    // Refresh job list after accepting
     const { data: updatedJobs, error: reloadError } = await supabase
       .from('job_submissions')
       .select('*')
@@ -57,6 +70,41 @@ const TechDashboard = () => {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-blue-700">🛠 Tech Dashboard</h1>
+
+      {profileStats && (
+        <div className="mb-6 p-4 bg-white border border-blue-100 rounded-xl shadow-sm">
+          <h2 className="text-xl font-semibold text-blue-800 mb-2">📊 Your Performance Summary</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm text-gray-700">
+            <div>
+              <p className="font-bold text-lg text-blue-700">Tier {profileStats.tech_tier}</p>
+              <p>Performance Level</p>
+            </div>
+            <div>
+              <p className="font-bold text-lg">
+                {profileStats.avg_rating?.toFixed(2) || 'N/A'} ⭐
+              </p>
+              <p>Average Rating</p>
+            </div>
+            <div>
+              <p className="font-bold text-lg">{profileStats.total_jobs_completed || 0}</p>
+              <p>Jobs Completed</p>
+            </div>
+            <div>
+              <p className="font-bold text-lg">{profileStats.total_callbacks || 0}</p>
+              <p>Callbacks</p>
+            </div>
+            <div>
+              <p className="font-bold text-lg">{profileStats.total_disputes || 0}</p>
+              <p>Disputes</p>
+            </div>
+          </div>
+          {profileStats.tech_tier < 3 && (
+            <p className="mt-2 text-sm text-gray-500 italic">
+              Complete more jobs with strong ratings to level up to Tier {profileStats.tech_tier + 1}!
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div
